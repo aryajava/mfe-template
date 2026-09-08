@@ -186,13 +186,19 @@ Lalu `pnpm install` agar workspace package baru ter-link.
 ```
 > Direkomendasikan baca URL dari `env.js` (bukan hard-code) — lihat gap #7 di [`12`](./12-risiko-dan-gap-produksi.md).
 
-**b) `template-shell/env.js`** — daftarkan URL:
+**b) `template-shell/public/env.js`** — daftarkan URL MFE baru.
+
+> ⚠️ **File yang ter-serve browser adalah `public/env.js` (stub), BUKAN `template-shell/env.js` (template konfigurasi).** Detil dua file ini: [`08`](./08-environment-config-runtime.md).
+> Alur yang benar:
+> 1. Salin isi `template-shell/env.js` (template) → `public/env.js`.
+> 2. Di hasil salinan, tambah entri `adminMfe`:
 ```js
 const MFE_ROUTES = {
   childMfe: "http://localhost:5006/remoteEntry.js",
   adminMfe: "http://localhost:5007/remoteEntry.js",   // ← tambah
 };
 ```
+> Catatan: route `/admin` **tetap jalan** walau langkah ini terlewat, karena `url` di LazyMFE (langkah 7a) punya fallback hardcoded — tapi nilai `env.js` tidak akan dipakai sampai file yang benar diedit.
 
 **c) `template-shell/src/components/Layout/Layout.tsx`** — tambah item navigasi:
 ```tsx

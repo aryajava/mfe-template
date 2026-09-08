@@ -138,7 +138,7 @@ Shared dibangun sebagai **library yang diekspor publik** → harus paling ketat.
 | `jsx` | `react-jsx` | JSX transform modern — **tidak perlu** `import React from 'react'` di tiap file |
 | `isolatedModules` | `true` | `ts-loader` memproses file satu per satu (transpile per file) |
 | `skipLibCheck` | `true` | Lewati cek type `node_modules` → typecheck lebih cepat |
-| `paths` (`@template/shared`) | → `../template-shared/src` | Konsisten dengan alias webpack → dev tanpa build shared |
+| `paths` | `@/*` → `./src/*` (ketiga package) + `@template/shared` → `../template-shared/src` (shell & child) | Alias lokal + konsisten dengan alias webpack → dev tanpa build shared |
 | `declaration`+`declarationMap` (shared saja) | `true` | Shared dipublish → butuh `.d.ts` untuk konsumen |
 
 > Catatan debugging TS: error TS yang "misterius" di shell/child bisa berasal dari `strict: false` (mis. variabel `any` diam-diam lolos) — jangan asumsikan codebase bebas TS error hanya karena build webpack sukses (`transpileOnly` + strict off). Selalu jalankan `pnpm typecheck`.
