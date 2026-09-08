@@ -13,7 +13,12 @@ pnpm dev        # shell :5000 + child :5006 berjalan dulu sebagai baseline
 ## Langkah 1 — Salin Template Child
 
 ```bash
+# Linux / macOS / Git Bash
 cp -r template-mfe-child template-mfe-admin
+```
+```powershell
+# Windows PowerShell (cp = alias Copy-Item, flagnya -Recurse, bukan -r)
+Copy-Item -Recurse template-mfe-child template-mfe-admin
 ```
 
 Ubah `template-mfe-admin/package.json`:

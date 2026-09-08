@@ -80,5 +80,27 @@ Auth tidak mengalir dengan sendirinya (lihat [`07`](./07-auth-routing-eventbus.m
 □ Test: standalone ✓ + via shell ✓ + singleton ✓ + error boundary ✓
 ```
 
+## Pola Lanjutan: Reactive State Lintas MFE (Di Luar Scope Template)
+
+> ⚠️ Label "Lanjutan": template starter ini TIDAK menyediakan wiring untuk pola-pola di bawah. EventBus cukup untuk fire-and-forget (toast, notifikasi); pola berikut untuk sinkronisasi data reaktif yang lebih ketat.
+
+1. **URL Search Params sebagai shared state** — dua MFE di satu halaman bisa sinkron lewat `?filter=active` di URL tanpa event bus sama sekali:
+   ```tsx
+   // MFE A menulis, MFE B membaca — URL adalah source of truth
+   const [searchParams, setSearchParams] = useSearchParams();
+   searchParams.set('filter', 'active'); setSearchParams(searchParams);
+   ```
+   Keuntungan: bisa di-bookmark & share, survive reload. Konsekuensi: URL jadi bagian dari API antar MFE.
+
+2. **Cross-MFE QueryClient invalidation** — `SharedProvider` menerima prop `queryClient` (lihat [`06`](./06-shared-library.md)). Jika shell meng-inject QueryClient-nya ke semua child (seperti kontrak auth di [`15`](./15-tutorial-menambah-mfe-baru.md) Langkah 9), maka:
+   ```tsx
+   // di child MFE — data yang di-mutate di sini otomatis refetch di shell
+   const queryClient = useQueryClient(); // instance SAMA dengan milik shell
+   queryClient.invalidateQueries({ queryKey: ['users'] });
+   ```
+   Saat ini template belum melakukannya — shell & child masing-masing buat `new QueryClient()` (gap #9 di [`12`](./12-risiko-dan-gap-produksi.md)).
+
+3. **State global lintas MFE (opsi lain)** — Zustand/Redux dibagi sebagai singleton di `shared` config webpack, atau cukup lewat `localStorage` + event bus untuk state jarang berubah. Pilih paling sederhana yang cukup.
+
 ---
 Lanjut ke [**10. Troubleshooting & Common Pitfalls**](./10-troubleshooting-dan-pitfall.md)

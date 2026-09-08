@@ -49,6 +49,17 @@ Context value: `{ user, isAuthenticated, isLoading, login, logout, hasPermission
 - Hook lokal yang throw bila di luar `AuthProvider`.
 - **Penting:** jangan tertukar dengan `useAuth` dari `@template/shared` (membaca `authContext` dari `SharedProvider`).
 
+**Perbandingan dua `useAuth` — salah import = behavior berbeda:**
+
+| | `useAuth` (shell) | `useAuth` (shared) |
+|--|-------------------|--------------------|
+| Import dari | `../contexts/AuthContext` (shell saja) | `@template/shared` |
+| Sumber data | `AuthContext` dari `AuthProvider` | `authContext` di dalam `SharedProvider` |
+| Di luar provider | ❌ **THROW error** | ✅ Return fallback kosong (`user: null`) |
+| Dipakai di | Komponen shell (Login, Layout, routes) | Child MFE & shared components |
+
+> Cara ingat: **shell = throw** (aplikasi host wajib punya auth), **shared = fallback** (child boleh standalone).
+
 ## Alur Auth: Kenyataan vs Niat (PENTING)
 
 **Niat (design):**
