@@ -129,6 +129,39 @@ src/
 
 Shared dibangun sebagai **library yang diekspor publik** → harus paling ketat. Shell & child (aplikasi) memilih longgar untuk kecepatan. Saat menulis kode baru di shared, ikuti `strict: true`; di app, andalkan `pnpm typecheck` ditambah disiplin pribadi.
 
-## Styles (`styles/globals.css`)
-- Tema HSL shadcn lengkap (light + `.dark`) dengan primary oranye (24 95% 53%), termasuk token sidebar.
-- Base: `* { @apply border-border; }`, body `bg-background text-foreground` + font Inter, `overflow-wrap: anywhere` pada teks, `pre/code` scroll horizontal.
+### Alasan pilihan `tsconfig.json` lain (sama di 3 package)
+
+| Opsi | Nilai | Kenapa |
+|------|-------|--------|
+| `target` / `lib` | ES2020 + DOM | Target browser modern; runtime app React 18 sudah aman tanpa polyfill berat |
+| `module` / `moduleResolution` | ESNext / `bundler` | Diizinkan import **tanpa ekstensi** dan resolve alias (`@/*`, `@template/shared` ke source) — bundler (webpack) yang menyelesaikannya. Konsekuensi: output `dist` shared butuh `fix-imports.cjs` |
+| `jsx` | `react-jsx` | JSX transform modern — **tidak perlu** `import React from 'react'` di tiap file |
+| `isolatedModules` | `true` | `ts-loader` memproses file satu per satu (transpile per file) |
+| `skipLibCheck` | `true` | Lewati cek type `node_modules` → typecheck lebih cepat |
+| `paths` (`@template/shared`) | → `../template-shared/src` | Konsisten dengan alias webpack → dev tanpa build shared |
+| `declaration`+`declarationMap` (shared saja) | `true` | Shared dipublish → butuh `.d.ts` untuk konsumen |
+
+> Catatan debugging TS: error TS yang "misterius" di shell/child bisa berasal dari `strict: false` (mis. variabel `any` diam-diam lolos) — jangan asumsikan codebase bebas TS error hanya karena build webpack sukses (`transpileOnly` + strict off). Selalu jalankan `pnpm typecheck`.
+
+## Styles (`styles/globals.css`) — Theming HSL & Dark Mode
+
+`styles/globals.css` dan `src/global.css` (shell/child) mendefinisikan **design token CSS variable** format HSL:
+
+```css
+:root {
+  --primary: 24 95% 53%;          /* hue saturation lightness — oranye */
+  --background: 0 0% 100%;
+  --radius: 0.5rem;
+  --sidebar-background: 0 0% 98%;
+  ...
+}
+.dark { --background: 20 14% 10%; ... }
+```
+
+Cara kerjanya:
+1. **Tailwind config** memetakan token ke utility: `primary: 'hsl(var(--primary))'` → class `bg-primary`, `text-primary`, dst. memakai nilai HSL token saat runtime.
+2. **Dark mode** dikontrol class: `darkMode: ['class']` + blok `.dark {}` menimpa token → pasang class `.dark` di `<html>` untuk tema gelap (belum ada toggle UI di template, tapi mekanismenya siap).
+3. **Kenapa HSL bukan hex?** Format `24 95% 53%` memudahkan menulis `hsl(var(--x) / <opacity>)` bila butuh variasi transparansi.
+4. Token **sidebar-*** dipakai komponen Layout shell; token `--ring`, `--border`, `--input` dipakai state focus/disabled komponen UI shared.
+
+Aturan base penting: `* { @apply border-border; }`, body `bg-background text-foreground` + font Inter, `overflow-wrap: anywhere` pada teks, `pre/code` scroll horizontal.

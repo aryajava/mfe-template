@@ -53,6 +53,10 @@ Child standalone & federated membuat `new QueryClient()` sendiri; config (staleT
 - `sastStorage` = obfuscation, bukan enkripsi.
 - `window._env` = config client-side, **bukan** tempat secret.
 
+### 12. Dua file env.js tidak selaras
+`template-shell/env.js` (konfigurasi lengkap) **tidak ter-serve** — yang dimuat `index.html` adalah `public/env.js` (stub kosong). Hasilnya `window._env = {}` → semua helper pakai fallback hardcoded; edit di root `env.js` tidak berpengaruh apa-apa. Detil & 2 opsi perbaikan: [`08`](./08-environment-config-runtime.md).
+**Action:** pilih satu sumber (salin konten root env.js ke `public/env.js` saat deploy, atau ubah CopyWebpackPlugin) dan jangan edit dua file dengan nilai berbeda.
+
 ## Keputusan Paling Penting Sebelum Produksi (Prioritas)
 
 1. **Kontrak auth lintas MFE** — siapa pemilik sesi, bagaimana child mendapat user/permission.

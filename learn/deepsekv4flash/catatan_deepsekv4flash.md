@@ -124,8 +124,8 @@ mfe-template/
 │
 ├── template-shell/          # @template/shell — Host (port 5000)
 │   ├── webpack.config.cjs   # ModuleFederationPlugin HOST
-│   ├── env.js               # Konfigurasi runtime (window._env)
-│   ├── public/env.js        # Override runtime kosong (copy webpack)
+│   ├── env.js               # Template konfigurasi runtime (window._env) — TIDAK ter-serve
+│   ├── public/env.js        # Stub yang BENAR-BENAR dimuat index.html (isi per environment)
 │   └── src/
 │       ├── index.tsx → bootstrap.tsx   # Provider chain + initSharedDependencies
 │       ├── App.tsx → routes/routes.tsx

@@ -18,7 +18,23 @@ Template ini memakai pendekatan **runtime injection**: file `env.js` dimuat terp
 
 Konfigurasi environment **tidak** dibuild ke bundle (bukan `process.env.*` di build-time), melainkan di-*inject* ke browser lewat file `env.js` yang dipanggil sebelum bundle app.
 
-### Shell: `template-shell/env.js` (sumber konfigurasi utama)
+### Shell: `public/env.js` vs `template-shell/env.js` — PENTING, Ada Dua File!
+
+Ada **dua** file bernama sama dengan peran berbeda — sering bikin bingung:
+
+| File | Isi | Yang Dilayani Browser? |
+|------|-----|------------------------|
+| `template-shell/env.js` | **Konfigurasi lengkap** (MODE, API_URLS, MFE_ROUTES, `window._env` dibekukan) | ❌ **TIDAK** — file ini tidak direferensikan oleh `index.html` maupun webpack |
+| `template-shell/public/env.js` | **Stub kosong**: `window._env = window._env \|\| {}` | ✅ **YA** — `index.html` memuat `<script src="/env.js">`, dan `CopyWebpackPlugin` menyalin folder `public/` ke root output → `/env.js` = file ini |
+
+**Akibat yang harus dipahami:**
+- Secara default, browser hanya mendapat `window._env = {}` dari stub → semua helper `env.ts` jatuh ke **fallback hardcoded** (auth 5139, dst.).
+- `GETTING-STARTED.md` menyuruh edit `template-shell/env.js`, tapi file itu **tidak ikut ter-serve**. Ada dua pilihan agar konsisten:
+  1. **Salin konten `template-shell/env.js` ke `public/env.js`** (alur deploy: ganti `public/env.js` per environment, seperti ConfigMap), atau
+  2. Ubah webpack agar ikut menyalin `template-shell/env.js` → root output (hapus/abaikan `public/env.js`).
+- Jangan edit dua-duanya dengan nilai berbeda — itu sumber bug produksi klasik.
+
+### Isi `template-shell/env.js` (template konfigurasi lengkap)
 
 IIFE yang mendefinisikan dan membekukan `window._env`:
 
@@ -63,14 +79,14 @@ Poin penting:
 - `getMfeUrl(mfeName)` → URL remoteEntry dari `MFE_ROUTES`.
 - `APP_NAME`, `VERSION`, `MARQUEE`, `ALLOWED_DOMAINS` untuk keperluan shell.
 
-### Shell: `public/env.js` (override runtime kosong)
+### Shell: `public/env.js` (file yang benar-benar ter-serve)
 
 ```js
 (function () { window._env = window._env || {}; })();
 ```
 - Disalin ke output oleh `CopyWebpackPlugin` (dari `public/`).
 - `index.html` memuat `<script src="/env.js">` di `<head>` → env tersedia sebelum bundle.
-- Untuk deploy produksi, cukup ganti nilai di `env.js` (atau file override per environment) tanpa rebuild.
+- **Untuk deploy produksi: isi file INI** (bukan root `env.js`) dengan konfigurasi per environment, tanpa rebuild — seperti ConfigMap di Kubernetes. Root `template-shell/env.js` dipakai sebagai **template** isinya.
 
 ## Helper Akses di `@template/shared/src/lib/env.ts`
 

@@ -53,6 +53,8 @@ new ModuleFederationPlugin({
 ```
 Jangan lupa `output.publicPath: 'auto'` (sudah ada di template child).
 
+**d) Tailwind — pastikan class shared ter-compile.** `tailwind.config.ts` child hasil salinan sudah menyertakan `'../template-shared/src/**/*.{ts,tsx}'` di `content` — **jangan dihapus**. Komponen shared (Button, dll.) tidak punya CSS sendiri; class-nya di-generate oleh Tailwind app pemakainya (lihat insight #10 di [`09`](./09-pola-dan-insight.md)).
+
 ## Langkah 3 — Buat Halaman
 
 `template-mfe-admin/src/pages/Users.tsx`:
@@ -217,30 +219,80 @@ pnpm dev
 
 ## Langkah 9 (Opsional) — Kontrak Auth Eksplisit
 
-Bila halaman Admin butuh user/permission shell:
+> ⚠️ **PENTING DIBACA DULU:** `authContext` **BUKAN props bawaan `LazyMFE` saat ini**. Template asli tidak punya wiring auth lintas MFE (lihat gap #2 di [`12`](./12-risiko-dan-gap-produksi.md)). Langkah ini memerlukan **modifikasi 3 file** di bawah — ikuti semua, baru bisa compile.
 
-**Shell** (`routes.tsx`):
+**File 1 — `template-shell/src/components/LazyMFE.tsx`** (tambah prop & teruskan):
+
 ```tsx
-// shell sudah punya authContext via useAuth()
-<LazyMFE ... passAuth authContext={authContext} />   // atau tambah props di LazyMFE
+import type { AuthContextType } from '@template/shared';   // tambah import
+
+interface LazyMFEProps {
+  scope: string;
+  module: string;
+  url: string;
+  version?: string;
+  fallback?: React.ReactNode;
+  basePath?: string;
+  subRoute?: string;
+  authContext?: AuthContextType;    // ← tambah (opsional)
+}
 ```
-**Child** (`Module.tsx`):
+Di bagian render (akhir komponen), teruskan ke remote:
 ```tsx
+<Component basePath={basePath} subRoute={subRoute} authContext={authContext} />
+```
+
+**File 2 — `template-shell/src/routes/routes.tsx`** (bungkus dengan komponen yang membaca auth shell):
+
+```tsx
+// routes.tsx sudah meng-import useAuth dari '../contexts/AuthContext'
+const AdminMFE: React.FC = () => {
+  const authContext = useAuth();    // hook SHELL — isi user/permission nyata
+  return (
+    <MFEErrorBoundary mfeName="Admin MFE">
+      <LazyMFE
+        scope="adminMFE"
+        module="./Module"
+        url={window._env?.getMfeUrl?.('adminMfe') || 'http://localhost:5007/remoteEntry.js'}
+        basePath="/admin"
+        authContext={authContext}
+      />
+    </MFEErrorBoundary>
+  );
+};
+// lalu: <Route path="/admin/*" element={<AdminMFE />} />
+```
+> `useAuth` shell menghasilkan objek yang strukturnya sama dengan `AuthContextType` shared (`user`, `login`, `hasPermission`, dll.) → aman dilewatkan.
+
+**File 3 — `template-mfe-admin/src/Module.tsx`** (terima & teruskan ke SharedProvider):
+
+```tsx
+import { SharedProvider, LoadingProvider, GlobalLoadingOverlay, type AuthContextType } from '@template/shared';
+
 interface ModuleProps {
   basePath?: string;
   subRoute?: string;
-  authContext?: AuthContextType;   // import type dari @template/shared
+  authContext?: AuthContextType;    // ← tambah
 }
 
 const Module: React.FC<ModuleProps> = ({ authContext, ...props }) => (
   <SharedProvider authContext={authContext}>
-    ...
+    <LoadingProvider>
+      <ModuleContent {...props} />
+      <GlobalLoadingOverlay />
+    </LoadingProvider>
   </SharedProvider>
 );
 ```
-Lalu di halaman: `import { useAuth } from '@template/shared'; const { user, hasPermission } = useAuth();`
 
-Alternatif tanpa wiring props: child membaca token dari `sastStorage` lalu memanggil `/Auth/profile` sendiri (pola yang dipakai `services/api.ts` child).
+**Pemakaian di halaman:**
+```tsx
+import { useAuth } from '@template/shared';   // useAuth SHARED, bukan shell
+const { user, hasPermission } = useAuth();
+if (!hasPermission('users:view')) return <p>403</p>;
+```
+
+**Alternatif tanpa modifikasi LazyMFE** (pola yang sudah dipakai `services/api.ts` child): child membaca token dari `sastStorage` lalu memanggil `/Auth/profile` sendiri saat mount. Lebih sederhana, tapi profil di-fetch dua kali (shell + child) dan ada delay render pertama.
 
 ## Checklist Akhir
 

@@ -60,7 +60,7 @@ Auth tidak mengalir dengan sendirinya (lihat [`07`](./07-auth-routing-eventbus.m
 7. **React Query `retry` shell menolak 4xx** — pola bagus yang layak ditiru (jangan retry error status client).
 8. **`useSharedContext()` sengaja TIDAK throw** (fallback default) → child standalone tidak crash; **kontras** dengan `useAuth` shell yang throw. Dua mentalitas berbeda dalam satu codebase — pahami keduanya.
 9. **Tidak ada test/lint config nyata** — template fokus ke wiring MFE. Jangan berasumsi ada CI.
-10. **Tailwind `content` tiap app menyertakan `../template-shared/src/**`** — konsekuensi shared dipakai sebagai **source** saat dev, bukan package ter-build. Jika shared punya class baru, app yang memakainya tetap butuh scan path ini.
+10. **Tailwind `content` tiap app menyertakan `../template-shared/src/**`** — konsekuensi shared dipakai sebagai **source** saat dev, bukan package ter-build. **Dampak nyata:** komponen shared (Button, Card, dll.) TIDAK punya CSS sendiri di runtime — class-nya harus di-generate oleh Tailwind milik app yang memakainya. Jika MFE baru lupa menyertakan `../template-shared/src/**/*.{ts,tsx}` di `tailwind.config.ts`-nya (atau menambah komponen shared baru tanpa rebuild app yang memakainya), class-nya tidak ada → komponen tampil tanpa style. **Fix:** setiap app/MFE wajib scan path shared-nya; jika shell punya tailwind, jangan lupa tambahkan path MFE baru (mis. `../template-mfe-admin/src/**/*.{ts,tsx}`) ke `content` shell bila shell perlu meng-compile class MFE tersebut.
 
 ## Checklist Menambah MFE Baru (Ringkas)
 
