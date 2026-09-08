@@ -1,11 +1,18 @@
 # 05 — Child MFE / Remote
 
+> Fase 4 dari Jalur Belajar. Lanjut ke remote yang dimuat shell.
+
 Package: `template-mfe-child` (`@template/mfe-child`), port **5006**, scope Module Federation: **`childMFE`**.
 
 ## Dua Mode Operasi
 
-1. **Standalone** (buka http://localhost:5006) — lewat `index.tsx` → `bootstrap.tsx` → `App.tsx`.
-2. **Dimuat shell** — shell memuat `remoteEntry.js`, memanggil `./Module`, lalu render `Module.tsx`.
+```
+Standalone Mode:
+  index.tsx → bootstrap.tsx → BrowserRouter → App.tsx → routes standalone
+
+Federated Mode (dimuat shell):
+  remoteEntry.js → container.get('./Module') → Module.tsx → SharedProvider → ModuleContent
+```
 
 ## Entry & Bootstrap (`src/index.tsx` → `src/bootstrap.tsx`)
 
@@ -45,7 +52,8 @@ interface ModuleProps { basePath?: string; subRoute?: string; }
     </LoadingProvider>
   </SharedProvider>
   ```
-  → Child memakai `SharedProvider` agar mendapat queryClient/authContext/default dari shared (auth mengalir dari shell lewat context ini).
+  → Child memakai `SharedProvider` untuk mendapat queryClient baru, apiBaseUrl, dan eventBus.
+  ⚠️ **Perhatikan:** `SharedProvider` di sini dibuat **TANPA props** → `authContext` memakai default kosong. Artinya auth shell **TIDAK otomatis mengalir** ke child. Bila child butuh user/permission shell, `authContext` harus di-inject eksplisit (lihat [`12-risiko-dan-gap-produksi.md`](./12-risiko-dan-gap-produksi.md)).
 
 ## App.tsx — Route Standalone
 

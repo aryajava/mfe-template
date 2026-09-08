@@ -1,5 +1,19 @@
 # 08 — Environment / Konfigurasi Runtime
 
+> Fase 5 dari Jalur Belajar. Cara template mengelola konfigurasi lintas environment.
+
+## Mental Model: 12-Factor App + ConfigMap Kubernetes
+
+Prinsip 12-Factor: **konfigurasi dipisah dari kode**. Kebanyakan framework frontend menyuntik env saat **build-time**:
+```js
+const API_URL = process.env.REACT_APP_API_URL; // di-hardcode ke bundle saat build
+```
+**Kelemahan fatal:** nilai sudah tertanam di file `.js`. Pindah image Docker dari staging ke produksi = **harus rebuild** hanya untuk mengganti URL.
+
+Template ini memakai pendekatan **runtime injection**: file `env.js` dimuat terpisah via `<script src="/env.js">` di `index.html`, dan menyuntik `window._env` ke browser. Sama seperti **ConfigMap/Volume Mount di Kubernetes**:
+- Container Docker di-build **sekali**, bisa dipakai untuk dev/staging/produksi.
+- `env.js` = **Service Discovery Registry**: nama service → URL + port.
+
 ## Konsep: Runtime Env via `window._env`
 
 Konfigurasi environment **tidak** dibuild ke bundle (bukan `process.env.*` di build-time), melainkan di-*inject* ke browser lewat file `env.js` yang dipanggil sebelum bundle app.

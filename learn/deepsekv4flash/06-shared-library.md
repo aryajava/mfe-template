@@ -1,5 +1,7 @@
 # 06 — Shared Library (`@template/shared`)
 
+> Fase 4 dari Jalur Belajar. Bagian terakhir: kode yang dipakai semua MFE.
+
 Package `template-shared`, ESM (`"type": "module"`), build dengan `tsc` + `scripts/fix-imports.cjs`. Re-export semuanya dari `src/index.ts`.
 
 ## Struktur
@@ -116,6 +118,16 @@ src/
   - Untuk setiap `from '…'` / `export * from '…'` relatif (`.`/`..`), cek apakah target `importPath + '.js'` ada, atau `importPath/index.js` ada → ganti jadi ekstensi `.js` / `/index.js`.
   - Tulis ulang file.
 - Build: `"build": "tsc && node scripts/fix-imports.cjs"`.
+
+## Catatan: Keketatan TypeScript Berbeda per Package
+
+| Package | strict | noImplicitAny | noUnused* |
+|---------|:------:|:-------------:|:---------:|
+| `template-shared` | ✅ `true` | ketat | ketat |
+| `template-shell` | ❌ `false` | `false` | `false` |
+| `template-mfe-child` | ❌ `false` | `false` | `false` |
+
+Shared dibangun sebagai **library yang diekspor publik** → harus paling ketat. Shell & child (aplikasi) memilih longgar untuk kecepatan. Saat menulis kode baru di shared, ikuti `strict: true`; di app, andalkan `pnpm typecheck` ditambah disiplin pribadi.
 
 ## Styles (`styles/globals.css`)
 - Tema HSL shadcn lengkap (light + `.dark`) dengan primary oranye (24 95% 53%), termasuk token sidebar.

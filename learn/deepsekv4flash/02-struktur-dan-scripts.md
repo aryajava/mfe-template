@@ -1,5 +1,28 @@
 # 02 — Struktur Proyek & Scripts (pnpm)
 
+> Fase 2 dari Jalur Belajar. Setelah paham konsep (`01`), kenali peta proyek ini.
+
+## Konvensi Port
+
+| Port | Proyek |
+|------|--------|
+| 5000 | Shell |
+| 5001 | (reserved) |
+| 5002–5005 | (reserved untuk services) |
+| 5006 | Child MFE 1 (admin/contoh) |
+| 5007 | Child MFE 2 |
+| 5008 | Child MFE 3 |
+| 5009–5010 | Child MFE 4–5 |
+
+**Port microservice** (fallback di `template-shared/src/lib/env.ts`):
+`auth` 5139 · `workflow` 5224 · `rules` 5227 · `dedup` 5084 · `portfolio` 5091 · `screening` 5291 · `partnership`/`common` 5062.
+
+## Kenapa pnpm Workspace? (Pedagogi)
+
+- Dependency di-hoist/disimpan sekali, tidak duplikat per package → hemat disk.
+- `pnpm --filter <nama>` menjalankan script pada package tertentu (lihat script root).
+- `workspace:*` pada `@template/shared` → package selalu merujuk versi lokal, bukan npm registry.
+
 ## Workspace Root
 
 **`pnpm-workspace.yaml`** — mendefinisikan semua package:

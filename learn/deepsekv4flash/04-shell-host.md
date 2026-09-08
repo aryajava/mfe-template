@@ -1,5 +1,7 @@
 # 04 — Shell / Host App
 
+> Fase 4 dari Jalur Belajar. Mulai dari host yang memuat semua.
+
 Package: `template-shell` (`@template/shell`), port **5000**.
 
 ## Bootstrap & Provider Chain (`src/bootstrap.tsx`)
@@ -82,6 +84,11 @@ Alur:
 Error handling: tampilkan panel kuning "`{scope}` Not Available" dengan pesan dev (MFE tidak jalan / port salah).
 
 > Container di-cache agar tidak double-load; `_initialized` mencegah `init()` dua kali.
+
+### Kenapa LazyMFE (Use Case)
+- **Multi-environment**: ganti `url` di `env.js` tanpa rebuild shell.
+- **Canary deployment / A/B testing**: load MFE versi berbeda via `version` prop (cache key berbeda).
+- **Dependency injection ringan**: props `basePath`/`subRoute` dikirim ke remote sebagai kontrak.
 
 ## MFEErrorBoundary (`src/components/ErrorBoundary/MFEErrorBoundary.tsx`)
 

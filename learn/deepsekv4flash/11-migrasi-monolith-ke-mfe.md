@@ -1,12 +1,14 @@
-# 09 — Migrasi Monolith → MFE
+# 11 — Migrasi Monolith → MFE
+
+> Fase 6 dari Jalur Belajar. Cara menerapkan template ini pada proyek monolith yang sudah ada.
 
 Ringkasan `MIGRATION-GUIDE.md`: panduan memecah React monorepo menjadi MFE berbasis Module Federation (arsitektur yang sudah diterapkan di template ini).
 
 ## Kapan Layak Dipecah
-- Banyak tim mengerjakan fitur berbeda.
+- Banyak tim mengerjakan fitur berbeda (independensi rilis/deploy).
 - Butuh deploy independen per fitur.
-- Bundle besar memperlambat load awal.
-- Cadence rilis berbeda tiap modul.
+- Bundle monolith besar (mis. > 1–2MB) memperlambat load awal.
+- Release cadence berbeda per modul.
 - Perlu isolasi kegagalan (satu MFE down tak merusak app).
 
 ## 6 Langkah Migrasi
