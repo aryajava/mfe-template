@@ -1,0 +1,1 @@
+export { MFEErrorBoundary } from './MFEErrorBoundary';

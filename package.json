@@ -1,0 +1,22 @@
+{
+  "name": "template-mfe-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "pnpm install",
+    "build:shared": "pnpm --filter @template/shared build",
+    "build:shell": "pnpm run build:shared && pnpm --filter @template/shell build",
+    "build:child": "pnpm run build:shared && pnpm --filter @template/mfe-child build",
+    "build": "pnpm run build:shared && pnpm --filter @template/shell build && pnpm --filter @template/mfe-child build",
+    "dev:shell": "pnpm --filter @template/shell dev",
+    "dev:child": "pnpm --filter @template/mfe-child dev",
+    "dev": "concurrently --names \"shell,child\" --prefix-colors \"yellow,cyan\" \"pnpm --filter @template/shell dev\" \"pnpm --filter @template/mfe-child dev\"",
+    "start": "pnpm install && pnpm dev",
+    "start:all": "pnpm install && pnpm dev",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rm -rf dist node_modules .webpack-cache"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

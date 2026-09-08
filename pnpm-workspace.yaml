@@ -1,0 +1,4 @@
+packages:
+  - 'template-shared'
+  - 'template-shell'
+  - 'template-mfe-child'
