@@ -29,6 +29,13 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg border p-6 shadow-sm">
+          <h3 className="font-semibold text-gray-900 mb-2">MFE Hallo</h3>
+          <p className="text-sm text-gray-600">
+            Navigate to <code className="bg-gray-100 px-1 rounded">/hallo</code> to see the MFE Hallo loaded dynamically.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg border p-6 shadow-sm">
           <h3 className="font-semibold text-gray-900 mb-2">Shared Library</h3>
           <p className="text-sm text-gray-600">
             The <code className="bg-gray-100 px-1 rounded">@template/shared</code> package provides common components, hooks, and utilities.

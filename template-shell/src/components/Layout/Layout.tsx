@@ -6,6 +6,7 @@ import {
   Home,
   PanelLeft,
   LayoutGrid,
+  Box
 } from "lucide-react";
 import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -25,6 +26,7 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { id: "dashboard", name: "Dashboard", href: "/dashboard", icon: Home },
   { id: "child-mfe", name: "Child MFE", href: "/child", icon: LayoutGrid },
+  { id: "mfe-hallo", name: "MFE Hallo", href: "/hallo", icon: Box },
 ];
 
 export default function Layout({ children }: LayoutProps) {
@@ -49,9 +51,8 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40 ${
-          sidebarExpanded ? "w-64" : "w-20"
-        }`}
+        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40 ${sidebarExpanded ? "w-64" : "w-20"
+          }`}
       >
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
@@ -85,11 +86,10 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 key={item.id}
                 to={item.href}
-                className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-orange-50 text-orange-600"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                } ${!sidebarExpanded ? "justify-center" : ""}`}
+                className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? "bg-orange-50 text-orange-600"
+                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  } ${!sidebarExpanded ? "justify-center" : ""}`}
                 title={!sidebarExpanded ? item.name : ""}
               >
                 <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-orange-600" : ""}`} />
