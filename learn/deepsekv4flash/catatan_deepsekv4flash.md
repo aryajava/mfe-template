@@ -28,6 +28,8 @@ Ikuti fase di bawah ini **berurutan**. Setiap fase memberi hasil belajar (learni
 | **Sebelum produksi** | [`12-risiko-dan-gap-produksi.md`](./12-risiko-dan-gap-produksi.md) — WAJIB |
 | Menambah MFE baru | [`15-tutorial-menambah-mfe-baru.md`](./15-tutorial-menambah-mfe-baru.md) (langkah penuh) + [`09-pola-dan-insight.md`](./09-pola-dan-insight.md) §Checklist |
 | Debug MFE blank | [`10-troubleshooting-dan-pitfall.md`](./10-troubleshooting-dan-pitfall.md) §Troubleshoot |
+| **Belum kenal React/JS?** | [`prasyarat/00-index-prasyarat.md`](./prasyarat/00-index-prasyarat.md) — 7 file fondasi (ES6, TS, React, Hooks, Router) |
+| **Uji pemahaman (100 soal)** | [`quiz/00-bank-soal-mfe.md`](./quiz/00-bank-soal-mfe.md) + [`quiz/01-kunci-jawaban-mfe.md`](./quiz/01-kunci-jawaban-mfe.md) |
 
 ---
 
