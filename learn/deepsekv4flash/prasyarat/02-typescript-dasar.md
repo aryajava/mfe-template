@@ -146,7 +146,16 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({...}) => {...}
 - `ErrorFallback.tsx:11` dan `Module.tsx:13` — dengan props.
 - `SharedProvider: React.FC<SharedProviderProps>` (`SharedContext.tsx:65`).
 
-> ⚡ Gotcha: `React.FC` sebenarnya **usang secara resmi** (React 18 type definitions mark `FC` deprecated — sebaiknya `{ props }: Props` langsung), TAPI template ini konsisten memakai `React.FC` di semua file. Saat membaca kode, kenali pola ini; saat menulis kode baru di repo, **ikuti gaya repo** (konsistensi > preferensi pribadi). Catatan utama [`06`](../06-shared-library.md) merujuk ini sebagai "gaya shadcn".
+> ⚡ Gotcha: `React.FC` sebenarnya **usang secara resmi** (React 18 type definitions menandai `FC` deprecated). Alternatif modernnya — dan kamu akan sering menemui gaya ini di komunitas/artikel lain:
+>
+> ```tsx
+> // Alternatif modern (tidak memakai React.FC)
+> const Button = ({ label }: { label: string }) => <button>{label}</button>;
+> // Atau dengan interface terpisah:
+> const Button = ({ label }: ButtonProps) => <button>{label}</button>;
+> ```
+>
+> TAPI template ini konsisten memakai `React.FC` di semua file. Saat membaca kode, kenali pola ini; saat menulis kode baru di repo, **ikuti gaya repo** (konsistensi > preferensi pribadi). Catatan utama [`06`](../06-shared-library.md) merujuk ini sebagai "gaya shadcn".
 
 ---
 

@@ -101,7 +101,12 @@ const params = useParams();       // { id: '42' } untuk route '/users/:id'
 **Di repo ini:**
 - `useLocation` adalah **jantung routing child MFE**: `template-mfe-child/src/Module.tsx:17` — `const location = useLocation(); const currentPath = location.pathname;` — child tidak punya daftar route sendiri saat dimuat shell; ia **membaca pathname shell** lalu memotong `basePath` (baris 38). Catatan utama [`05`](../05-child-mfe-remote.md) menyebut pola ini "path-based fallback routing".
 - `useLocation` + `Navigate state`: `ProtectedRoute.tsx:16` — mencatat `location` untuk dipakai sebagai "halaman asal" (lihat §6).
-- `useParams` **belum dipakai di template ini** — tapi pola rute `/child/users/:id` akan membutuhkannya; kenali saja bentuknya untuk saat itu. (Berbeda dengan `useLocation`, `useParams` membaca parameter dari rute **shell** — di child yang dimuat federasi, lebih umum pakai `useLocation` seperti di `Module.tsx`.)
+- `useParams` **belum dipakai di template ini** — tapi pola rute `/child/users/:id` akan membutuhkannya; kenali saja bentuknya untuk saat itu:
+  ```tsx
+  // Kalau nanti route shell memakai:  path="/child/users/:id"
+  // Maka di child:  const { id } = useParams();  // id = '42'
+  ```
+  (Berbeda dengan `useLocation`, `useParams` membaca parameter dari rute **shell** — di child yang dimuat federasi, lebih umum pakai `useLocation` seperti di `Module.tsx`.)
 
 ---
 

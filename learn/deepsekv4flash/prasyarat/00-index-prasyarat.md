@@ -1,6 +1,6 @@
 # 00 — Index & Jalur Belajar Prasyarat
 
-> Prasyarat | [← Kembali ke Index Prasyarat](./00-index-prasyarat.md)
+> [← Kembali ke Catatan Utama](../catatan_deepsekv4flash.md)
 
 Seri 7 file ini adalah **pintu masuk** sebelum membaca catatan utama di `learn/deepsekv4flash/`. Catatan utama berasumsi pembaca sudah lancar React, JavaScript ES6+, dan TypeScript dasar. Jika kamu programmer (paham variabel, loop, function, OOP) tapi **belum pernah menyentuh frontend**, baca seri ini dulu.
 
