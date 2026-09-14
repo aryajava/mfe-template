@@ -64,6 +64,20 @@ export const AppRoutes: React.FC = () => {
             </MFEErrorBoundary>
           }
         />
+
+        <Route
+          path="/master/*"
+          element={
+            <MFEErrorBoundary mfeName="MFE Master">
+              <LazyMFE
+                scope="mfeMaster"
+                module="./Module"
+                url="http://localhost:5008/remoteEntry.js"
+                basePath="/master"
+              />
+            </MFEErrorBoundary>
+          }
+        />
       </Route>
 
       {/* Redirect unauthenticated to login */}

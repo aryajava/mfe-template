@@ -9,7 +9,7 @@ export const getApiUrl = (serviceName: string): string => {
   );
 
   const fallbackPorts: Record<string, number> = {
-    auth: 5139,
+    auth: 5251,
     workflow: 5224,
     rules: 5227,
     dedup: 5084,
@@ -46,7 +46,7 @@ export const getApiBaseUrl = (): string => {
   }
 
   console.warn("window._env not found - using fallback API URL");
-  return "http://localhost:5139/api";
+  return "http://localhost:5251/api";
 };
 
 export const getEnvMode = (): string => {

@@ -1,7 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isDev = argv.mode === 'development';
@@ -9,13 +8,8 @@ module.exports = (env, argv) => {
   return {
     entry: './src/index.tsx',
     mode: isDev ? 'development' : 'production',
-    devtool: isDev ? 'eval-source-map' : 'source-map',
-    cache: {
-      type: 'filesystem',
-      cacheDirectory: path.resolve(__dirname, '.webpack-cache'),
-    },
     devServer: {
-      port: 5000,
+      port: 5008,
       historyApiFallback: true,
       hot: true,
       headers: {
@@ -26,7 +20,7 @@ module.exports = (env, argv) => {
       path: path.resolve(__dirname, 'dist'),
       filename: '[name].[contenthash].js',
       clean: true,
-      publicPath: '/',
+      publicPath: 'auto',
     },
     resolve: {
       extensions: ['.tsx', '.ts', '.js', '.jsx'],
@@ -40,13 +34,7 @@ module.exports = (env, argv) => {
       rules: [
         {
           test: /\.tsx?$/,
-          use: {
-            loader: 'ts-loader',
-            options: {
-              transpileOnly: true,
-              configFile: path.resolve(__dirname, 'tsconfig.json'),
-            },
-          },
+          use: 'ts-loader',
           exclude: /node_modules[\\\/](?!@template)/,
         },
         {
@@ -55,48 +43,37 @@ module.exports = (env, argv) => {
         },
       ],
     },
-    optimization: {
-      runtimeChunk: 'single',
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            priority: 10,
-          },
-        },
-      },
-    },
     plugins: [
       new ModuleFederationPlugin({
-        name: 'shell',
+        name: 'mfeMaster',
         filename: 'remoteEntry.js',
-        remotes: {},
+        exposes: {
+          './Module': './src/Module.tsx',
+        },
         shared: {
           react: {
             singleton: true,
-            requiredVersion: false,
+            requiredVersion: '^18.3.1',
             strictVersion: false,
-            eager: true,
+            eager: false,
           },
           'react-dom': {
             singleton: true,
-            requiredVersion: false,
+            requiredVersion: '^18.3.1',
             strictVersion: false,
-            eager: true,
+            eager: false,
           },
           'react/jsx-runtime': {
             singleton: true,
-            requiredVersion: false,
+            requiredVersion: '^18.3.1',
             strictVersion: false,
-            eager: true,
+            eager: false,
           },
           'react-router-dom': {
             singleton: true,
             requiredVersion: false,
             strictVersion: false,
-            eager: true,
+            eager: false,
           },
           '@tanstack/react-query': {
             singleton: true,
@@ -106,11 +83,6 @@ module.exports = (env, argv) => {
       }),
       new HtmlWebpackPlugin({
         template: './index.html',
-      }),
-      new CopyWebpackPlugin({
-        patterns: [
-          { from: 'public', to: '.', noErrorOnMissing: true },
-        ],
       }),
     ],
   };

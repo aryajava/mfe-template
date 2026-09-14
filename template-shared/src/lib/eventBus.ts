@@ -14,15 +14,19 @@ class EventBus implements EventBusInstance {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event)!.add(callback as EventCallback);
+    console.log(`[EventBus] Subscribed to "${event}". Total listeners:`, this.listeners.get(event)!.size);
 
     return () => {
       this.listeners.get(event)?.delete(callback as EventCallback);
+      console.log(`[EventBus] Unsubscribed from "${event}".`);
     };
   }
 
   publish<T>(event: string, data?: T): void {
+    console.log(`[EventBus] Publishing "${event}" with data:`, data);
     const callbacks = this.listeners.get(event);
-    if (callbacks) {
+    if (callbacks && callbacks.size > 0) {
+      console.log(`[EventBus] Dispatching to ${callbacks.size} listener(s)...`);
       callbacks.forEach((callback) => {
         try {
           callback(data);
@@ -30,6 +34,8 @@ class EventBus implements EventBusInstance {
           console.error(`Error in event handler for "${event}":`, error);
         }
       });
+    } else {
+      console.warn(`[EventBus] No listeners found for "${event}"!`);
     }
   }
 
@@ -42,7 +48,13 @@ class EventBus implements EventBusInstance {
   }
 }
 
-export const eventBus = new EventBus();
+const GLOBAL_EVENT_BUS_KEY = '__MFE_EVENT_BUS__';
+
+export const eventBus: EventBusInstance =
+  typeof window !== 'undefined'
+    ? ((window as any)[GLOBAL_EVENT_BUS_KEY] =
+        (window as any)[GLOBAL_EVENT_BUS_KEY] || new EventBus())
+    : new EventBus();
 
 export const MFE_EVENTS = {
   NAVIGATE_TO: 'mfe:navigate',

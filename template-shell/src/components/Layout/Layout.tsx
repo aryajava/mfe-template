@@ -6,11 +6,13 @@ import {
   Home,
   PanelLeft,
   LayoutGrid,
-  Box
+  Box,
+  Package
 } from "lucide-react";
 import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { storage } from "../../utils/sastStorage";
+import { Navbar } from "./Navbar";
 
 interface LayoutProps {
   children: ReactNode;
@@ -25,6 +27,7 @@ interface NavigationItem {
 
 const navigation: NavigationItem[] = [
   { id: "dashboard", name: "Dashboard", href: "/dashboard", icon: Home },
+  { id: "master-produk", name: "Master Produk", href: "/master/produk", icon: Package },
   { id: "child-mfe", name: "Child MFE", href: "/child", icon: LayoutGrid },
   { id: "mfe-hallo", name: "MFE Hallo", href: "/hallo", icon: Box },
 ];
@@ -111,14 +114,20 @@ export default function Layout({ children }: LayoutProps) {
             >
               <PanelLeft className="h-4 w-4 text-gray-600" />
             </button>
+            <Navbar />
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1.5">
+            <div className="flex items-center gap-2.5 px-3 py-1.5">
               <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
                 <User className="h-4 w-4 text-orange-600" />
               </div>
-              <span className="text-sm font-medium">{user?.name || "Admin User"}</span>
+              <div className="flex flex-col text-left">
+                <span className="text-sm font-semibold text-gray-900 leading-tight">{user?.name || "Admin User"}</span>
+                <span className="text-[10px] font-bold text-orange-600 tracking-wider">
+                  {user?.roles?.[1] || user?.roles?.[0]?.toUpperCase() || "USER"}
+                </span>
+              </div>
             </div>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-red-600 hover:text-red-700">
               <LogOut className="h-4 w-4" />

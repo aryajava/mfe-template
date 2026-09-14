@@ -1,9 +1,31 @@
 import React from 'react';
 import { Settings, BarChart3, FileText } from 'lucide-react';
+import { useEventBus } from '@template/shared';
 
 const Home: React.FC = () => {
+  const { publish, events } = useEventBus();
+  const handleKlikTombol = () => {
+    // Siarkan sinyal:
+    publish(events.NOTIFICATION_SHOW, {
+      message: 'Halo Shell! Data dari Child berhasil disimpan!',
+      type: 'success',
+    });
+  };
   return (
     <div className="p-6">
+      <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between">
+        <div>
+          <h4 className="font-semibold text-orange-950 text-sm">Tes Event Bus Inter-MFE</h4>
+          <p className="text-xs text-orange-700">Klik tombol ini untuk mengirim sinyal notifikasi ke Shell</p>
+        </div>
+        <button
+          onClick={handleKlikTombol}
+          className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium shadow-sm transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+        >
+          🔔 Kirim Notifikasi ke Shell
+        </button>
+      </div>
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Child MFE - Home</h1>
         <p className="text-gray-600 mt-1">

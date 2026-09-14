@@ -2,7 +2,14 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   darkMode: ['class'],
-  content: ['./src/**/*.{ts,tsx}', './index.html', '../template-shared/src/**/*.{ts,tsx}'],
+  content: [
+    './src/**/*.{ts,tsx}',
+    './index.html',
+    '../template-shared/src/**/*.{ts,tsx}',
+    '../template-shell/src/**/*.{ts,tsx}',
+    '../template-mfe-child/src/**/*.{ts,tsx}',
+    '../mfe-master/src/**/*.{ts,tsx}',
+  ],
   prefix: '',
   theme: {
     container: {

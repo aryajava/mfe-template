@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
   darkMode: ['class'],
@@ -7,7 +8,7 @@ const config: Config = {
     './index.html',
     '../template-shared/src/**/*.{ts,tsx}',
     '../template-shell/src/**/*.{ts,tsx}',
-    '../mfe-master/src/**/*.{ts,tsx}',
+    '../template-mfe-child/src/**/*.{ts,tsx}',
     '../mfe-hallo/src/**/*.{ts,tsx}',
   ],
   prefix: '',
@@ -76,7 +77,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

@@ -96,9 +96,16 @@
     font-family: "Inter", sans-serif;
   }
 
-  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
+  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label) {
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+
+  table,
+  th,
+  td {
+    word-break: normal;
+    overflow-wrap: normal;
   }
 
   pre,

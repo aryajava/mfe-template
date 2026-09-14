@@ -7,3 +7,8 @@ declare module 'mfeHallo/Module' {
   const Module: React.ComponentType<{ basePath?: string; subRoute?: string }>;
   export default Module;
 }
+
+declare module 'mfeMaster/Module' {
+  const Module: React.ComponentType<{ basePath?: string; subRoute?: string }>;
+  export default Module;
+}

@@ -3,3 +3,4 @@ packages:
   - 'template-shell'
   - 'template-mfe-child'
   - 'mfe-hallo'
+  - 'mfe-master'

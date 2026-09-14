@@ -7,6 +7,8 @@ const config: Config = {
     "./index.html",
     "../template-shared/src/**/*.{ts,tsx}",
     "../template-mfe-child/src/**/*.{ts,tsx}",
+    "../mfe-master/src/**/*.{ts,tsx}",
+    "../mfe-hallo/src/**/*.{ts,tsx}",
   ],
   prefix: "",
   theme: {
