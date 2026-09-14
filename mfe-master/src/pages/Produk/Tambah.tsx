@@ -54,6 +54,7 @@ export const ProdukTambah: React.FC = () => {
     stock: 10,
   });
 
+  const [discountInput, setDiscountInput] = useState<string>('0');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,19 +77,49 @@ export const ProdukTambah: React.FC = () => {
 
   const hargaEfektif = hitungHargaEfektif(formData.price, formData.discountPercent);
 
+  const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setDiscountInput(val);
+    const num = parseFloat(val);
+    const parsed = isNaN(num) ? 0 : num;
+
+    setFormData((prev) => ({
+      ...prev,
+      discountPercent: parsed,
+    }));
+
+    if (parsed >= 100) {
+      setErrors((prev) => ({
+        ...prev,
+        discountPercent: 'Diskon harus kurang dari 100% (maksimal 99.99%).',
+      }));
+    } else if (parsed < 0) {
+      setErrors((prev) => ({
+        ...prev,
+        discountPercent: 'Diskon tidak boleh bernilai negatif.',
+      }));
+    } else {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.discountPercent;
+        return copy;
+      });
+    }
+  };
+
   const validate = (): boolean => {
     const err: Record<string, string> = {};
     if (!formData.title.trim()) {
       err.title = 'Nama produk wajib diisi.';
     }
-    if (formData.price <= 0) {
-      err.price = 'Harga dasar harus lebih besar dari 0.';
+    if (formData.price < 100 || !Number.isInteger(Number(formData.price))) {
+      err.price = 'Harga dasar minimal Rp 100 dan harus bilangan bulat.';
     }
-    if (formData.discountPercent < 0 || formData.discountPercent > 100) {
-      err.discountPercent = 'Diskon harus antara 0% sampai 100%.';
+    if (formData.discountPercent < 0 || formData.discountPercent >= 100) {
+      err.discountPercent = 'Diskon harus kurang dari 100% (maksimal 99.99%).';
     }
-    if (formData.stock < 0) {
-      err.stock = 'Stok tidak boleh bernilai negatif.';
+    if (formData.stock < 0 || !Number.isInteger(Number(formData.stock))) {
+      err.stock = 'Stok tidak boleh bernilai negatif dan harus bilangan bulat.';
     }
     if (!formData.categoryId) {
       err.categoryId = 'Kategori wajib dipilih.';
@@ -300,7 +331,7 @@ export const ProdukTambah: React.FC = () => {
                   <Input
                     id="price"
                     type="number"
-                    min="0"
+                    min="100"
                     step="1000"
                     value={formData.price || ''}
                     onChange={(e) =>
@@ -328,14 +359,13 @@ export const ProdukTambah: React.FC = () => {
                     id="discount"
                     type="number"
                     min="0"
-                    max="100"
-                    value={formData.discountPercent}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        discountPercent: Number(e.target.value) || 0,
-                      })
-                    }
+                    max="99.99"
+                    step="0.01"
+                    allowDecimal={true}
+                    maxDecimalDigits={2}
+                    value={discountInput}
+                    onChange={handleDiscountChange}
+                    placeholder="0"
                     className={cn('pr-8', errors.discountPercent && 'border-red-400 bg-red-50/20')}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">

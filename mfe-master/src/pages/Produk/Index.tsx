@@ -16,6 +16,7 @@ import {
 import {
   Button,
   Input,
+  SearchNotification,
   Card,
   CardContent,
   Tooltip,
@@ -259,10 +260,10 @@ export const ProdukIndex: React.FC = () => {
               }}
               className="w-full h-10 px-3 py-2 text-sm bg-gray-50 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:bg-white text-gray-800 cursor-pointer"
             >
-              <option value="Semua">Semua Kategori ({categories.length})</option>
+              <option value="Semua">Semua Kategori</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.name}>
-                  {cat.name} ({cat.productCount} item)
+                  {cat.name}
                 </option>
               ))}
             </select>
@@ -289,6 +290,17 @@ export const ProdukIndex: React.FC = () => {
               <option value="stock-desc">Stok: Paling Banyak</option>
             </select>
           </div>
+        </div>
+
+        {/* Notifikasi Standar Pencarian & Filter Tabel (tanpa background-color) */}
+        <div className="mt-3 pt-2.5 border-t border-gray-100">
+          <SearchNotification
+            total={pagination.total}
+            itemLabel="produk"
+            search={debouncedSearch}
+            category={selectedCategory}
+            sortKey={`${sortConfig.key}-${sortConfig.direction}`}
+          />
         </div>
       </Card>
 

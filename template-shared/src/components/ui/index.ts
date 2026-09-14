@@ -1,7 +1,8 @@
 export { Button, buttonVariants } from './button';
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './card';
-export { Input } from './input';
+export { Input, type InputProps } from './input';
 export { Label } from './label';
+export { SearchNotification, type SearchNotificationProps } from './search-notification';
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tooltip';
 export {
   DropdownMenu,
@@ -16,3 +17,4 @@ export {
 
 // Re-export sonner toast directly
 export { toast as sonnerToast, Toaster as SonnerToaster } from 'sonner';
+
