@@ -15,6 +15,6 @@ export {
   DropdownMenuSub,
 } from './dropdown-menu';
 
-// Re-export sonner toast directly
-export { toast as sonnerToast, Toaster as SonnerToaster } from 'sonner';
+// Re-export sonner toast from custom styled wrapper
+export { sonnerToast, SonnerToaster, type ToasterProps } from './sonner';
 

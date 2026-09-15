@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   XCircle,
   ArrowUpDown,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import {
   Button,
@@ -26,13 +28,12 @@ import {
   useLoading,
   useAuth,
   useEventBus,
-  cn,
   MFE_EVENTS,
+  cn,
   type PaginationConfig,
   type SortConfig,
 } from '@template/shared';
 import { productApi } from '../../services/productApi';
-import { storage } from '../../utils/sastStorage';
 import {
   ProductApiItem,
   CategoryItem,
@@ -44,29 +45,18 @@ export const ProdukIndex: React.FC = () => {
   const navigate = useNavigate();
   const { publish } = useEventBus();
   const { showLoading, hideLoading } = useLoading();
-  const { user } = useAuth();
+  const { user, canPerformAction } = useAuth();
 
-  // Hanya Super Admin (SA) dan Pemilik Toko (OWNER) yang berhak menghapus produk
-  const activeUser =
-    user ||
-    (() => {
-      try {
-        const raw = storage.retrieve('user');
-        return raw ? JSON.parse(raw) : null;
-      } catch {
-        return null;
-      }
-    })();
-
-  const canDelete =
-    activeUser?.roles?.some((r: string) =>
-      ['sa', 'owner'].includes(r.toLowerCase())
-    ) ?? false;
+  const canCreate = canPerformAction('master-produk', 'create');
+  const canUpdate = canPerformAction('master-produk', 'update');
+  const canDelete = canPerformAction('master-produk', 'delete');
+  const canToggleStatus = canPerformAction('master-produk', 'status');
 
   // Filter & Pagination States
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Semua');
+  const [selectedStatus, setSelectedStatus] = useState<string>(''); // '' = Semua, 'true' = Aktif, 'false' = Nonaktif
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: 'createdAt',
     direction: 'desc',
@@ -84,8 +74,9 @@ export const ProdukIndex: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Delete Target Modal
+  // Delete & Status Target Modals
   const [deleteTarget, setDeleteTarget] = useState<ProductApiItem | null>(null);
+  const [statusTarget, setStatusTarget] = useState<{ item: ProductApiItem; nextStatus: boolean } | null>(null);
 
   // Debounce search term
   useEffect(() => {
@@ -114,6 +105,7 @@ export const ProdukIndex: React.FC = () => {
         pageSize: pagination.pageSize,
         search: debouncedSearch.trim() || undefined,
         category: selectedCategory !== 'Semua' ? selectedCategory : undefined,
+        isActive: selectedStatus !== '' ? selectedStatus === 'true' : undefined,
         sortBy: sortConfig.key,
         sortOrder: sortConfig.direction,
       });
@@ -127,21 +119,63 @@ export const ProdukIndex: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.page, pagination.pageSize, debouncedSearch, selectedCategory, sortConfig]);
+  }, [pagination.page, pagination.pageSize, debouncedSearch, selectedCategory, selectedStatus, sortConfig]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Handle soft delete with global loading context
+  // Handle status toggle modal open
+  const handleToggleStatusClick = (item: ProductApiItem) => {
+    if (!canToggleStatus) return;
+
+    if (!item.isActive && item.stock <= 0) {
+      publish(MFE_EVENTS.NOTIFICATION_SHOW, {
+        message: `Produk "${item.title}" memiliki stok 0 dan tidak dapat diaktifkan. Silakan isi stok terlebih dahulu.`,
+        type: 'warning',
+      });
+      return;
+    }
+
+    setStatusTarget({ item, nextStatus: !item.isActive });
+  };
+
+  // Execute status toggle after modal confirmation
+  const handleToggleStatusConfirm = async () => {
+    if (!statusTarget || !canToggleStatus) return;
+
+    const { item, nextStatus } = statusTarget;
+    const actionLabel = nextStatus ? 'Mengaktifkan' : 'Menonaktifkan';
+    showLoading(`${actionLabel} produk "${item.title}"...`);
+
+    try {
+      await productApi.toggleStatus(item.id, nextStatus);
+      publish(MFE_EVENTS.NOTIFICATION_SHOW, {
+        message: `Produk "${item.title}" berhasil ${nextStatus ? 'diaktifkan' : 'dinonaktifkan'}.`,
+        type: 'success',
+      });
+      setStatusTarget(null);
+      fetchProducts();
+    } catch (err: any) {
+      console.error('Gagal mengubah status produk:', err);
+      publish(MFE_EVENTS.NOTIFICATION_SHOW, {
+        message: err.message || `Gagal ${actionLabel.toLowerCase()} produk.`,
+        type: 'error',
+      });
+    } finally {
+      hideLoading();
+    }
+  };
+
+  // Handle hard delete with global loading context
   const handleDeleteConfirm = async () => {
     if (!deleteTarget || !canDelete) return;
 
     showLoading(`Menghapus produk "${deleteTarget.title}"...`);
     try {
-      await productApi.delete(deleteTarget.id, 'soft');
+      await productApi.delete(deleteTarget.id);
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
-        message: `Produk "${deleteTarget.title}" berhasil dinonaktifkan.`,
+        message: `Produk "${deleteTarget.title}" berhasil dihapus permanen.`,
         type: 'success',
       });
       setDeleteTarget(null);
@@ -149,7 +183,7 @@ export const ProdukIndex: React.FC = () => {
     } catch (err: any) {
       console.error('Gagal menghapus produk:', err);
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
-        message: err.message || 'Gagal menghapus produk.',
+        message: err.message || 'Gagal menghapus produk. Jika produk memiliki riwayat transaksi, nonaktifkan produk sebagai gantinya.',
         type: 'error',
       });
     } finally {
@@ -172,23 +206,34 @@ export const ProdukIndex: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-1">
-            <span>Beranda</span>
+            <Link to="/dashboard" className="hover:text-orange-600 transition-colors">
+              Beranda
+            </Link>
             <span>/</span>
-            <span className="text-gray-700">Master</span>
+            <Link to="/master" className="hover:text-orange-600 transition-colors">
+              Master
+            </Link>
             <span>/</span>
             <span className="text-orange-600 font-semibold">Produk</span>
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              Master Produk
-            </h1>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
-              {pagination.total} Produk
-            </span>
+            <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200/60 shadow-xs">
+              <Package className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Produk
+                </h1>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                  {pagination.total} Produk
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Kelola katalog produk, harga, diskon, dan ketersediaan stok toko secara terpusat.
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            Kelola katalog produk, harga, diskon, dan ketersediaan stok toko secara terpusat.
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -209,12 +254,14 @@ export const ProdukIndex: React.FC = () => {
             </TooltipContent>
           </Tooltip>
 
-          <Button asChild className="gap-2 bg-orange-600 hover:bg-orange-700 text-white shadow-xs">
-            <Link to="tambah">
-              <Plus className="w-4 h-4" />
-              <span>Tambah Produk</span>
-            </Link>
-          </Button>
+          {canCreate && (
+            <Button asChild className="gap-2 bg-orange-600 hover:bg-orange-700 text-white shadow-xs">
+              <Link to="tambah">
+                <Plus className="w-4 h-4" />
+                <span>Tambah Produk</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -251,7 +298,7 @@ export const ProdukIndex: React.FC = () => {
           </div>
 
           {/* Filter Kategori Dinamis */}
-          <div className="w-full sm:w-64 flex-shrink-0">
+          <div className="w-full sm:w-56 flex-shrink-0">
             <select
               value={selectedCategory}
               onChange={(e) => {
@@ -266,6 +313,22 @@ export const ProdukIndex: React.FC = () => {
                   {cat.name}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Filter Status Dinamis */}
+          <div className="w-full sm:w-44 flex-shrink-0">
+            <select
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+              className="w-full h-10 px-3 py-2 text-sm bg-gray-50 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:bg-white text-gray-800 cursor-pointer"
+            >
+              <option value="">Semua Status</option>
+              <option value="true">Aktif</option>
+              <option value="false">Nonaktif</option>
             </select>
           </div>
 
@@ -311,6 +374,7 @@ export const ProdukIndex: React.FC = () => {
             <thead className="bg-gray-50/80 border-b border-gray-200 text-xs uppercase font-semibold text-gray-700 tracking-wider">
               <tr>
                 <th className="py-3.5 px-4 w-14 text-center whitespace-nowrap">#</th>
+                <th className="py-3.5 px-4 w-24 text-center whitespace-nowrap">Aksi</th>
                 <th
                   onClick={() => toggleSort('title')}
                   className="py-3.5 px-4 min-w-[280px] cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap"
@@ -342,7 +406,6 @@ export const ProdukIndex: React.FC = () => {
                   </div>
                 </th>
                 <th className="py-3.5 px-4 w-28 text-center whitespace-nowrap">Status</th>
-                <th className="py-3.5 px-4 w-24 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -405,6 +468,76 @@ export const ProdukIndex: React.FC = () => {
                         {itemIndex}
                       </td>
 
+                      {/* Aksi with Tooltip & Button from shared */}
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <div className="inline-flex items-center justify-center gap-1">
+                          {canUpdate && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`edit/${item.id}`)}
+                                  className="h-8 w-8 hover:text-orange-600 hover:bg-orange-50"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Ubah Produk</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          {/* Tombol Toggle Status (Aktifkan / Nonaktifkan) */}
+                          {canToggleStatus && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleToggleStatusClick(item)}
+                                  className={cn(
+                                    "h-8 w-8",
+                                    item.isActive
+                                      ? "hover:text-amber-600 hover:bg-amber-50 text-emerald-600"
+                                      : "hover:text-emerald-600 hover:bg-emerald-50 text-gray-400"
+                                  )}
+                                >
+                                  {item.isActive ? (
+                                    <ToggleRight className="w-4 h-4" />
+                                  ) : (
+                                    <ToggleLeft className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{item.isActive ? 'Nonaktifkan Produk' : 'Aktifkan Produk'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          {/* Tombol Hapus Permanen */}
+                          {canDelete && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteTarget(item)}
+                                  className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Hapus Permanen</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </td>
+
                       {/* Produk */}
                       <td className="py-3.5 px-4 min-w-[280px]">
                         <div className="flex items-center gap-3">
@@ -460,7 +593,7 @@ export const ProdukIndex: React.FC = () => {
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         {discountVal > 0 ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap">
-                            -{discountVal}%
+                            {discountVal}%
                           </span>
                         ) : (
                           <span className="text-gray-400 text-xs">-</span>
@@ -502,46 +635,6 @@ export const ProdukIndex: React.FC = () => {
                             Nonaktif
                           </span>
                         )}
-                      </td>
-
-                      {/* Aksi with Tooltip & Button from shared */}
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <div className="inline-flex items-center justify-center gap-1">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`edit/${item.id}`)}
-                                className="h-8 w-8 hover:text-orange-600 hover:bg-orange-50"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Ubah Produk</p>
-                            </TooltipContent>
-                          </Tooltip>
-
-                          {/* Tombol Hapus hanya tampil jika role adalah SA atau OWNER */}
-                          {canDelete && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setDeleteTarget(item)}
-                                  className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Hapus (Soft Delete)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   );
@@ -659,7 +752,68 @@ export const ProdukIndex: React.FC = () => {
         </div>
       </Card>
 
-      {/* Modal Dialog Konfirmasi Soft Delete */}
+      {/* Modal Dialog Konfirmasi Ubah Status (Aktif / Nonaktif) */}
+      {statusTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+          <Card className="max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                  statusTarget.nextStatus
+                    ? "bg-emerald-100 text-emerald-600"
+                    : "bg-amber-100 text-amber-600"
+                )}
+              >
+                {statusTarget.nextStatus ? (
+                  <ToggleRight className="w-5 h-5" />
+                ) : (
+                  <ToggleLeft className="w-5 h-5" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-gray-900">
+                  {statusTarget.nextStatus
+                    ? 'Konfirmasi Pengaktifan Produk'
+                    : 'Konfirmasi Penonaktifan Produk'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {statusTarget.nextStatus
+                    ? `Apakah Anda yakin ingin mengaktifkan produk "${statusTarget.item.title}"? Produk akan kembali ditampilkan di katalog belanja publik.`
+                    : `Apakah Anda yakin ingin menonaktifkan produk "${statusTarget.item.title}"? Produk akan disembunyikan dari katalog belanja publik.`}
+                </p>
+                {statusTarget.nextStatus && statusTarget.item.stock <= 0 && (
+                  <div className="mt-2.5 p-2.5 bg-red-50 border border-red-200 rounded-md text-xs text-red-800">
+                    Perhatian: Produk ini memiliki stok 0 dan tidak dapat diaktifkan. Silakan perbarui stok terlebih dahulu.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setStatusTarget(null)}
+              >
+                Batal
+              </Button>
+              <Button
+                disabled={statusTarget.nextStatus && statusTarget.item.stock <= 0}
+                className={cn(
+                  statusTarget.nextStatus
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    : "bg-amber-600 hover:bg-amber-700 text-white"
+                )}
+                onClick={handleToggleStatusConfirm}
+              >
+                {statusTarget.nextStatus ? 'Ya, Aktifkan' : 'Ya, Nonaktifkan'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal Dialog Konfirmasi Hapus Permanen */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
           <Card className="max-w-md w-full p-6 space-y-4 shadow-xl">
@@ -669,15 +823,18 @@ export const ProdukIndex: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-gray-900">
-                  Konfirmasi Hapus Produk
+                  Konfirmasi Hapus Permanen
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  Apakah Anda yakin ingin menghapus produk{' '}
+                  Apakah Anda yakin ingin menghapus permanen produk{' '}
                   <span className="font-semibold text-gray-800">
                     "{deleteTarget.title}"
                   </span>
-                  ? Produk akan dinonaktifkan (soft delete) di database.
+                  ? Tindakan ini tidak dapat dibatalkan.
                 </p>
+                <div className="mt-2.5 p-2.5 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
+                  Perhatian: Bila produk pernah tercatat dalam transaksi belanja pelanggan, produk tidak dapat dihapus permanen demi keutuhan riwayat pesanan. Silakan gunakan tombol pengalih status untuk menonaktifkannya.
+                </div>
               </div>
             </div>
 
@@ -692,7 +849,7 @@ export const ProdukIndex: React.FC = () => {
                 variant="destructive"
                 onClick={handleDeleteConfirm}
               >
-                Ya, Hapus
+                Ya, Hapus Permanen
               </Button>
             </div>
           </Card>

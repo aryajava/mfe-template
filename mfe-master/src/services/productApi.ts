@@ -9,7 +9,7 @@ import {
 import { storage } from '../utils/sastStorage';
 
 const API_BASE_URL = 'http://localhost:5251';
-const FALLBACK_API_KEY = '068B205F75F340F4BC97E4DB5A2024C3';
+const FALLBACK_API_KEY = 'TEST123';
 
 /**
  * Mengambil header request secara dinamis berdasarkan sesi login aktif (SecretKey).
@@ -51,6 +51,7 @@ export interface PagedParams {
   pageSize?: number;
   search?: string;
   category?: string;
+  isActive?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -67,6 +68,9 @@ export const productApi = {
     if (params.search) query.set('Search', params.search);
     if (params.category && params.category !== 'Semua') {
       query.set('Category', params.category);
+    }
+    if (params.isActive !== undefined) {
+      query.set('IsActive', params.isActive.toString());
     }
     if (params.sortBy) query.set('SortBy', params.sortBy);
     if (params.sortOrder) query.set('SortOrder', params.sortOrder);
@@ -133,20 +137,31 @@ export const productApi = {
   },
 
   /**
-   * Menghapus produk (soft delete atau hard delete)
-   * DELETE /api/products/{id}?type=soft
+   * Mengubah status operasional produk (Aktif / Nonaktif)
+   * POST /api/products/{id}/status
    */
-  delete: async (
+  toggleStatus: async (
     id: number | string,
-    type: 'soft' | 'hard' = 'soft'
-  ): Promise<string> => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/products/${id}?type=${type}`,
-      {
-        method: 'DELETE',
-        headers: getHeaders(),
-      }
-    );
+    isActive: boolean
+  ): Promise<{ id: number; isActive: boolean }> => {
+    const res = await fetch(`${API_BASE_URL}/api/products/${id}/status`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ isActive }),
+    });
+    return handleResponse<{ id: number; isActive: boolean }>(res);
+  },
+
+  /**
+   * Menghapus produk permanen (hard delete).
+   * Produk dengan riwayat pesanan tidak dapat dihapus.
+   * DELETE /api/products/{id}
+   */
+  delete: async (id: number | string): Promise<string> => {
+    const res = await fetch(`${API_BASE_URL}/api/products/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
     return handleResponse<string>(res);
   },
 

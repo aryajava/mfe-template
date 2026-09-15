@@ -20,8 +20,8 @@ import {
   LoadingSpinner,
   useLoading,
   useEventBus,
-  cn,
   MFE_EVENTS,
+  cn,
 } from '@template/shared';
 import { productApi } from '../../services/productApi';
 import {
@@ -201,13 +201,18 @@ export const ProdukUbah: React.FC = () => {
 
       const updated = await productApi.update(id, payload);
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
-        message: `Produk "${updated.title}" berhasil diperbarui di server!`,
+        message: `Produk "${updated.title}" berhasil diperbarui di server.`,
         type: 'success',
       });
       navigate('../..', { relative: 'path' });
     } catch (err: any) {
       console.error('Gagal memperbarui produk:', err);
-      setApiError(err.message || 'Terjadi kesalahan saat memperbarui produk.');
+      const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui produk.';
+      setApiError(errorMsg);
+      publish(MFE_EVENTS.NOTIFICATION_SHOW, {
+        message: errorMsg,
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
       hideLoading();
@@ -389,15 +394,15 @@ export const ProdukUbah: React.FC = () => {
                     id="price"
                     type="number"
                     min="100"
-                    step="1000"
-                    value={formData.price || ''}
+                    step="1"
+                    value={formData.price === 0 ? '' : formData.price}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         price: Number(e.target.value) || 0,
                       })
                     }
-                    placeholder="0"
+                    placeholder="100"
                     className={cn('pl-10', errors.price && 'border-red-400 bg-red-50/20')}
                   />
                 </div>
@@ -456,7 +461,7 @@ export const ProdukUbah: React.FC = () => {
               <div className="text-left sm:text-right">
                 {formData.discountPercent > 0 && (
                   <span className="text-xs text-gray-500 line-through block">
-                    {formatRupiah(formData.price)} (-{formData.discountPercent}%)
+                    {formatRupiah(formData.price)} (Diskon {formData.discountPercent}%)
                   </span>
                 )}
                 <span className="text-lg font-bold text-orange-600">

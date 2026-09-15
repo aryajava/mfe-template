@@ -11,6 +11,19 @@ export interface User {
   permissions: string[];
 }
 
+export interface MenuPermissionItem {
+  menuCode?: string;
+  groupCode?: string;
+  groupName?: string;
+  urlPrefix?: string;
+  fullPath?: string;
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canToggleActive: boolean;
+}
+
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -19,6 +32,9 @@ export interface AuthContextType {
   logout: () => void;
   hasPermission: (permission: string) => boolean;
   hasRole: (role: string) => boolean;
+  menuPermissions: Record<string, MenuPermissionItem>;
+  canAccessMenu: (menuCodeOrPath: string) => boolean;
+  canPerformAction: (menuCodeOrPath: string, action: 'create' | 'update' | 'delete' | 'status') => boolean;
 }
 
 export interface SharedContextType {
@@ -38,6 +54,9 @@ const defaultAuthContext: AuthContextType = {
   logout: () => {},
   hasPermission: () => false,
   hasRole: () => false,
+  menuPermissions: {},
+  canAccessMenu: () => false,
+  canPerformAction: () => false,
 };
 
 const defaultFallbackContext: SharedContextType = {
@@ -68,14 +87,16 @@ export const SharedProvider: React.FC<SharedProviderProps> = ({
   authContext,
   apiBaseUrl,
 }) => {
+  const parent = useContext(SharedContext);
+
   const value = useMemo(
     () => ({
-      queryClient: queryClient || new QueryClient(),
-      authContext: authContext || defaultAuthContext,
-      apiBaseUrl: apiBaseUrl || getApiBaseUrl(),
+      queryClient: queryClient || parent?.queryClient || new QueryClient(),
+      authContext: authContext || parent?.authContext || defaultAuthContext,
+      apiBaseUrl: apiBaseUrl || parent?.apiBaseUrl || getApiBaseUrl(),
       eventBus,
     }),
-    [queryClient, authContext, apiBaseUrl]
+    [queryClient, authContext, apiBaseUrl, parent]
   );
 
   return <SharedContext.Provider value={value}>{children}</SharedContext.Provider>;

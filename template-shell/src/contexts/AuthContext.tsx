@@ -1,25 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { getApiUrl, eventBus, MFE_EVENTS } from "@template/shared";
+import {
+  getApiUrl,
+  eventBus,
+  MFE_EVENTS,
+  type User,
+  type MenuPermissionItem,
+  type AuthContextType,
+} from "@template/shared";
 import { useNavigate } from "react-router-dom";
 import { storage } from "../utils/sastStorage";
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  roles: string[];
-  permissions: string[];
-}
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (usernameOrEmail: string, password: string) => Promise<void>;
-  logout: () => void;
-  hasPermission: (permission: string) => boolean;
-  hasRole: (role: string) => boolean;
-}
+export type { User, MenuPermissionItem, AuthContextType };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -38,7 +29,66 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPermissionsLoaded, setIsPermissionsLoaded] = useState<boolean>(() => {
+    try {
+      return Boolean(storage.retrieve("menuPermissions"));
+    } catch {
+      return false;
+    }
+  });
+  const [menuPermissions, setMenuPermissions] = useState<Record<string, MenuPermissionItem>>(() => {
+    try {
+      const cached = storage.retrieve("menuPermissions");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const normalized: Record<string, MenuPermissionItem> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          const item = v as MenuPermissionItem;
+          normalized[k.toLowerCase()] = item;
+          if (item.fullPath) {
+            normalized[item.fullPath.toLowerCase()] = item;
+          }
+        }
+        return normalized;
+      }
+      return {};
+    } catch {
+      return {};
+    }
+  });
   const navigate = useNavigate();
+
+  const fetchMenuPermissions = async (token: string): Promise<Record<string, MenuPermissionItem> | null> => {
+    try {
+      const authApiUrl = getApiUrl("auth");
+      const response = await fetch(`${authApiUrl}/role-menus/my-permissions`, {
+        headers: {
+          "X-Api-Key": token,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const resJson = await response.json();
+        const rawPerms: Record<string, MenuPermissionItem> = resJson.data?.permissions || resJson.permissions || {};
+        const normalized: Record<string, MenuPermissionItem> = {};
+        for (const [k, v] of Object.entries(rawPerms)) {
+          const item = v as MenuPermissionItem;
+          normalized[k.toLowerCase()] = item;
+          if (item.fullPath) {
+            normalized[item.fullPath.toLowerCase()] = item;
+          }
+        }
+        setMenuPermissions(normalized);
+        setIsPermissionsLoaded(true);
+        storage.store("menuPermissions", JSON.stringify(normalized));
+        return normalized;
+      }
+    } catch (error) {
+      console.warn("Failed to fetch menu permissions:", error);
+    }
+    return null;
+  };
 
   const fetchUserProfile = async (token: string): Promise<User | null> => {
     try {
@@ -63,6 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
         setUser(userData);
         storage.store("user", JSON.stringify(userData));
+
         return userData;
       }
     } catch (error) {
@@ -72,6 +123,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       try {
         const token = storage.retrieve("apiKey") || storage.retrieve("token");
@@ -85,7 +138,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         if (token) {
-          await fetchUserProfile(token);
+          await Promise.allSettled([
+            fetchUserProfile(token),
+            fetchMenuPermissions(token),
+          ]);
         }
       } catch (error) {
         console.error("Auth initialization failed:", error);
@@ -93,12 +149,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         storage.remove("apiKey");
         storage.remove("authenticated");
         storage.remove("user");
+        storage.remove("menuPermissions");
+        if (isMounted) {
+          setMenuPermissions({});
+          setIsPermissionsLoaded(false);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     initAuth();
+
+    // Re-evaluasi izin saat tab browser kembali aktif (focus)
+    const handleFocus = () => {
+      const token = storage.retrieve("apiKey") || storage.retrieve("token");
+      if (token) {
+        fetchMenuPermissions(token);
+      }
+    };
+
+    // Re-evaluasi izin saat ada perubahan di localStorage antar-tab (storage)
+    const handleStorage = (e: StorageEvent) => {
+      if (!e.key || ["token", "apiKey", "menuPermissions"].includes(e.key)) {
+        const token = storage.retrieve("apiKey") || storage.retrieve("token");
+        if (token) {
+          fetchMenuPermissions(token);
+        }
+      }
+    };
+
+    // Re-evaluasi izin saat eventBus memancarkan PERMISSIONS_UPDATED
+    const unsubPerms = eventBus.subscribe(MFE_EVENTS.PERMISSIONS_UPDATED, () => {
+      const token = storage.retrieve("apiKey") || storage.retrieve("token");
+      if (token) {
+        fetchMenuPermissions(token);
+      }
+    });
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      unsubPerms();
+    };
   }, []);
 
   const login = useCallback(
@@ -141,8 +240,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
           setUser(userData);
           storage.store("user", JSON.stringify(userData));
+          await fetchMenuPermissions(apiKey);
         } else {
-          await fetchUserProfile(apiKey);
+          await Promise.allSettled([
+            fetchUserProfile(apiKey),
+            fetchMenuPermissions(apiKey),
+          ]);
         }
 
         eventBus.publish(MFE_EVENTS.USER_LOGGED_IN, { user: rawUser, token: apiKey });
@@ -176,6 +279,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       storage.remove("apiKey");
       storage.remove("authenticated");
       storage.remove("user");
+      storage.remove("menuPermissions");
+      setMenuPermissions({});
+      setIsPermissionsLoaded(false);
       setUser(null);
       eventBus.publish(MFE_EVENTS.USER_LOGGED_OUT, {});
       navigate("/login");
@@ -205,6 +311,69 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     [user]
   );
 
+  const canAccessMenu = useCallback(
+    (menuCodeOrPath: string): boolean => {
+      if (!user) return false;
+
+      // Super Admin selalu memiliki akses penuh ke semua menu
+      const isSa = user.roles?.some((r) => ["sa", "superadmin", "super admin"].includes(r.toLowerCase()));
+      if (isSa) return true;
+
+      const key = menuCodeOrPath.toLowerCase().trim();
+      if (key === "dashboard" || key === "/dashboard" || key === "master" || key === "/master") {
+        return true;
+      }
+
+      // 1. Cek langsung via menuCode atau fullPath
+      const perm = menuPermissions[key];
+      if (perm !== undefined) {
+        return Boolean(perm.canRead);
+      }
+
+      // 2. Cek apakah ada item yang fullPath-nya cocok
+      for (const item of Object.values(menuPermissions)) {
+        if (item.fullPath && item.fullPath.toLowerCase() === key) {
+          return Boolean(item.canRead);
+        }
+      }
+
+      if (isPermissionsLoaded) {
+        return false;
+      }
+      return false;
+    },
+    [user, menuPermissions, isPermissionsLoaded]
+  );
+
+  const canPerformAction = useCallback(
+    (menuCodeOrPath: string, action: 'create' | 'update' | 'delete' | 'status'): boolean => {
+      if (!user) return false;
+
+      const isSa = user.roles?.some((r) => ["sa", "superadmin", "super admin"].includes(r.toLowerCase()));
+      if (isSa) return true;
+
+      const key = menuCodeOrPath.toLowerCase().trim();
+      let perm = menuPermissions[key];
+      if (!perm) {
+        for (const item of Object.values(menuPermissions)) {
+          if (item.fullPath && item.fullPath.toLowerCase() === key) {
+            perm = item;
+            break;
+          }
+        }
+      }
+
+      if (!perm) return false;
+
+      if (action === 'create') return Boolean(perm.canCreate);
+      if (action === 'update') return Boolean(perm.canUpdate);
+      if (action === 'delete') return Boolean(perm.canDelete);
+      if (action === 'status') return Boolean(perm.canToggleActive);
+      return Boolean(perm.canRead);
+    },
+    [user, menuPermissions]
+  );
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -213,6 +382,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     hasPermission,
     hasRole,
+    menuPermissions,
+    canAccessMenu,
+    canPerformAction,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

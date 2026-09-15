@@ -185,9 +185,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     };
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-      // Saat pengguna fokus pada input bernilai "0", pilih seluruh teks
-      // agar pengetikan angka pertama langsung menggantikan nilai 0
-      if (isNumeric && !isPhoneNumber && (e.target.value === "0" || e.target.value === "0.00")) {
+      // Saat pengguna fokus pada input angka (non-telepon), pilih seluruh teks
+      // agar pengetikan angka langsung menggantikan nilai lama dan tidak menumpuk
+      if (isNumeric && !isPhoneNumber) {
         e.target.select();
       }
       onFocus?.(e);

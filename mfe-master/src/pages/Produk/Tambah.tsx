@@ -19,8 +19,8 @@ import {
   CardContent,
   useLoading,
   useEventBus,
-  cn,
   MFE_EVENTS,
+  cn,
 } from '@template/shared';
 import { productApi } from '../../services/productApi';
 import {
@@ -46,7 +46,7 @@ export const ProdukTambah: React.FC = () => {
     stock: number;
   }>({
     title: '',
-    price: 100000,
+    price: 0,
     categoryId: 1,
     description: '',
     image: '',
@@ -149,13 +149,18 @@ export const ProdukTambah: React.FC = () => {
 
       const created = await productApi.create(payload);
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
-        message: `Produk "${created.title}" berhasil disimpan di database!`,
+        message: `Produk "${created.title}" berhasil disimpan di database.`,
         type: 'success',
       });
       navigate('..', { relative: 'path' });
     } catch (err: any) {
       console.error('Gagal membuat produk:', err);
-      setApiError(err.message || 'Terjadi kesalahan saat menyimpan produk ke API.');
+      const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan produk ke API.';
+      setApiError(errorMsg);
+      publish(MFE_EVENTS.NOTIFICATION_SHOW, {
+        message: errorMsg,
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
       hideLoading();
@@ -332,15 +337,15 @@ export const ProdukTambah: React.FC = () => {
                     id="price"
                     type="number"
                     min="100"
-                    step="1000"
-                    value={formData.price || ''}
+                    step="1"
+                    value={formData.price === 0 ? '' : formData.price}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         price: Number(e.target.value) || 0,
                       })
                     }
-                    placeholder="0"
+                    placeholder="100"
                     className={cn('pl-10', errors.price && 'border-red-400 bg-red-50/20')}
                   />
                 </div>
@@ -399,7 +404,7 @@ export const ProdukTambah: React.FC = () => {
               <div className="text-left sm:text-right">
                 {formData.discountPercent > 0 && (
                   <span className="text-xs text-gray-500 line-through block">
-                    {formatRupiah(formData.price)} (-{formData.discountPercent}%)
+                    {formatRupiah(formData.price)} (Diskon {formData.discountPercent}%)
                   </span>
                 )}
                 <span className="text-lg font-bold text-orange-600">

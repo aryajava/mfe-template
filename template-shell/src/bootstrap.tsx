@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { SharedProvider, TooltipProvider, SonnerToaster, LoadingProvider, GlobalLoadingOverlay } from '@template/shared';
+import { SharedProvider, TooltipProvider, SonnerToaster, LoadingProvider, GlobalLoadingOverlay, NotificationListener } from '@template/shared';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import App from './App';
 import './global.css';
@@ -47,6 +47,7 @@ root.render(
               <TooltipProvider>
                 <App />
                 <SonnerToaster />
+                <NotificationListener />
                 <GlobalLoadingOverlay />
               </TooltipProvider>
             </LoadingProvider>

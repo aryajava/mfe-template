@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { MFEErrorBoundary } from '../components/ErrorBoundary';
 import { LazyMFE } from '../components/LazyMFE';
+import { PermissionRoute } from './PermissionRoute';
 
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
@@ -69,12 +70,14 @@ export const AppRoutes: React.FC = () => {
           path="/master/*"
           element={
             <MFEErrorBoundary mfeName="MFE Master">
-              <LazyMFE
-                scope="mfeMaster"
-                module="./Module"
-                url="http://localhost:5008/remoteEntry.js"
-                basePath="/master"
-              />
+              <PermissionRoute>
+                <LazyMFE
+                  scope="mfeMaster"
+                  module="./Module"
+                  url="http://localhost:5008/remoteEntry.js"
+                  basePath="/master"
+                />
+              </PermissionRoute>
             </MFEErrorBoundary>
           }
         />

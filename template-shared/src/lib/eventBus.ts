@@ -64,6 +64,7 @@ export const MFE_EVENTS = {
   USER_LOGGED_OUT: 'auth:logged_out',
   SESSION_EXPIRED: 'auth:session_expired',
   TOKEN_REFRESHED: 'auth:token_refreshed',
+  PERMISSIONS_UPDATED: 'auth:permissions_updated',
 
   DATA_UPDATED: 'data:updated',
   CACHE_INVALIDATE: 'cache:invalidate',
