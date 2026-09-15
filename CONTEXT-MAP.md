@@ -4,7 +4,7 @@
 
 - [Template Shell](./template-shell/): Host application managing root layout, authentication session, navigation sidebar, and micro-frontend orchestration.
 - [Template Shared](./template-shared/): Shared contracts, event bus, cross-cutting contexts, and reusable UI components.
-- [Master MFE](./mfe-master/): Master data domain handling catalog entities (Produk, Kategori, and Ekspedisi).
+- [Master MFE](./mfe-master/): Master data domain handling catalog and administration entities (Produk, Kategori, Ekspedisi, Pelanggan, and User).
 - [Hallo MFE](./mfe-hallo/): Example communication and cross-MFE interaction remote.
 - [Child MFE](./template-mfe-child/): Starter template for new remote micro-frontends.
 

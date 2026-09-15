@@ -20,6 +20,8 @@ import {
   Activity,
   Sliders,
   FileText,
+  Users,
+  UserCheck,
 } from "lucide-react";
 import { ReactNode, useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -58,6 +60,7 @@ type NavEntry = NavSingleItem | NavGroupItem;
 
 const GROUP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   master: Database,
+  transaksi: ShoppingBag,
   operasional: ShoppingCart,
   monitoring: Activity,
   beranda: Home,
@@ -69,6 +72,8 @@ const MENU_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   'master-produk': Package,
   'master-kategori': Layers,
   'master-ekspedisi': Truck,
+  'master-pelanggan': Users,
+  'master-user': UserCheck,
   pesanan: ShoppingBag,
   'permintaan-diskon': Tag,
   notifikasi: Bell,
@@ -80,6 +85,8 @@ const MENU_LABELS: Record<string, string> = {
   'master-produk': "Produk",
   'master-kategori': "Kategori",
   'master-ekspedisi': "Ekspedisi",
+  'master-pelanggan': "Pelanggan",
+  'master-user': "User Pengguna",
   pesanan: "Pesanan",
   'permintaan-diskon': "Permintaan Diskon",
   notifikasi: "Notifikasi",
@@ -88,6 +95,7 @@ const MENU_LABELS: Record<string, string> = {
 
 const GROUP_LABELS: Record<string, string> = {
   master: "Master Data",
+  transaksi: "Transaksi",
   operasional: "Operasional",
   monitoring: "Monitoring",
   beranda: "Beranda",

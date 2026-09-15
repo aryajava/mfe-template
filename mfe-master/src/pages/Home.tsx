@@ -4,6 +4,8 @@ import {
   Package,
   Layers,
   Truck,
+  Users,
+  UserCog,
   ArrowRight,
   Sparkles,
   ShieldCheck,
@@ -22,6 +24,8 @@ import {
 import { productApi } from '../services/productApi';
 import { categoryApi } from '../services/categoryApi';
 import { courierApi } from '../services/courierApi';
+import { customerApi } from '../services/customerApi';
+import { userApi } from '../services/userApi';
 
 export const Home: React.FC = () => {
   const { user, canAccessMenu } = useAuth();
@@ -30,11 +34,15 @@ export const Home: React.FC = () => {
   const canAccessProduk = canAccessMenu('master-produk') || canAccessMenu('/master/produk');
   const canAccessKategori = canAccessMenu('master-kategori') || canAccessMenu('/master/kategori');
   const canAccessEkspedisi = canAccessMenu('master-ekspedisi') || canAccessMenu('/master/ekspedisi');
+  const canAccessPelanggan = canAccessMenu('master-pelanggan') || canAccessMenu('/master/pelanggan');
+  const canAccessUser = canAccessMenu('master-user') || canAccessMenu('/master/user');
 
   // Data hitungan entitas (hanya diambil jika memiliki hak akses)
   const [produkCount, setProdukCount] = useState<number | null>(null);
   const [kategoriCount, setKategoriCount] = useState<number | null>(null);
   const [ekspedisiCount, setEkspedisiCount] = useState<number | null>(null);
+  const [pelangganCount, setPelangganCount] = useState<number | null>(null);
+  const [userCount, setUserCount] = useState<number | null>(null);
 
   // Evaluasi label peran
   const roles = useMemo(() => {
@@ -85,7 +93,25 @@ export const Home: React.FC = () => {
     } else {
       setEkspedisiCount(null);
     }
-  }, [canAccessProduk, canAccessKategori, canAccessEkspedisi]);
+
+    if (canAccessPelanggan) {
+      customerApi
+        .getPaged({ pageSize: 1 })
+        .then((res) => setPelangganCount(res?.total ?? null))
+        .catch(() => setPelangganCount(null));
+    } else {
+      setPelangganCount(null);
+    }
+
+    if (canAccessUser) {
+      userApi
+        .getPaged({ pageSize: 1 })
+        .then((res) => setUserCount(res?.total ?? null))
+        .catch(() => setUserCount(null));
+    } else {
+      setUserCount(null);
+    }
+  }, [canAccessProduk, canAccessKategori, canAccessEkspedisi, canAccessPelanggan, canAccessUser]);
 
   // Master modules definition
   const allModules = useMemo(
@@ -120,8 +146,39 @@ export const Home: React.FC = () => {
         hasAccess: canAccessEkspedisi,
         countLabel: ekspedisiCount !== null ? `${ekspedisiCount} Mitra Kurir` : 'Memuat data...',
       },
+      {
+        id: 'pelanggan',
+        menuCode: 'master-pelanggan',
+        title: 'Pelanggan',
+        description: 'Pengelolaan data pembeli toko, verifikasi akun pelanggan, pengaturan blokir, dan sesi.',
+        icon: Users,
+        path: 'pelanggan',
+        hasAccess: canAccessPelanggan,
+        countLabel: pelangganCount !== null ? `${pelangganCount} Pelanggan` : 'Memuat data...',
+      },
+      {
+        id: 'user',
+        menuCode: 'master-user',
+        title: 'User Pengguna',
+        description: 'Manajemen akun staf internal toko, penetapan peran akses pengguna, dan kontrol kredensial.',
+        icon: UserCog,
+        path: 'user',
+        hasAccess: canAccessUser,
+        countLabel: userCount !== null ? `${userCount} User Staf` : 'Memuat data...',
+      },
     ],
-    [canAccessProduk, canAccessKategori, canAccessEkspedisi, produkCount, kategoriCount, ekspedisiCount]
+    [
+      canAccessProduk,
+      canAccessKategori,
+      canAccessEkspedisi,
+      canAccessPelanggan,
+      canAccessUser,
+      produkCount,
+      kategoriCount,
+      ekspedisiCount,
+      pelangganCount,
+      userCount,
+    ]
   );
 
   // Hanya tampilkan kartu modul yang memiliki izin akses (dinamis disembunyikan sesuai keputusan Q4)

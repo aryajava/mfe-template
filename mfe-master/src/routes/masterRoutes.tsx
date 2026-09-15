@@ -10,6 +10,10 @@ import KategoriUbah from '../pages/Kategori/Ubah';
 import EkspedisiIndex from '../pages/Ekspedisi/Index';
 import EkspedisiTambah from '../pages/Ekspedisi/Tambah';
 import EkspedisiUbah from '../pages/Ekspedisi/Ubah';
+import PelangganIndex from '../pages/Pelanggan/Index';
+import UserIndex from '../pages/User/Index';
+import UserTambah from '../pages/User/Tambah';
+import UserUbah from '../pages/User/Ubah';
 import Home from '../pages/Home';
 import NotFound from '../pages/NotFound';
 
@@ -37,6 +41,14 @@ export const MasterRoutes: React.FC = () => {
   const canReadEkspedisi = canAccessMenu('master-ekspedisi');
   const canCreateEkspedisi = canPerformAction('master-ekspedisi', 'create');
   const canUpdateEkspedisi = canPerformAction('master-ekspedisi', 'update');
+
+  // Evaluasi hak akses Pelanggan
+  const canReadPelanggan = canAccessMenu('master-pelanggan');
+
+  // Evaluasi hak akses User
+  const canReadUser = canAccessMenu('master-user');
+  const canCreateUser = canPerformAction('master-user', 'create');
+  const canUpdateUser = canPerformAction('master-user', 'update');
 
   return (
     <Routes>
@@ -67,6 +79,22 @@ export const MasterRoutes: React.FC = () => {
           <Route index element={<EkspedisiIndex />} />
           {canCreateEkspedisi && <Route path="tambah" element={<EkspedisiTambah />} />}
           {canUpdateEkspedisi && <Route path="edit/:id" element={<EkspedisiUbah />} />}
+        </Route>
+      )}
+
+      {/* Sub-Domain: Master Pelanggan */}
+      {canReadPelanggan && (
+        <Route path="pelanggan">
+          <Route index element={<PelangganIndex />} />
+        </Route>
+      )}
+
+      {/* Sub-Domain: Master User */}
+      {canReadUser && (
+        <Route path="user">
+          <Route index element={<UserIndex />} />
+          {canCreateUser && <Route path="tambah" element={<UserTambah />} />}
+          {canUpdateUser && <Route path="edit/:id" element={<UserUbah />} />}
         </Route>
       )}
 
