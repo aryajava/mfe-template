@@ -5,8 +5,6 @@ import {
   LogOut,
   Home,
   PanelLeft,
-  PanelLeftClose,
-  PanelLeftOpen,
   LayoutGrid,
   Box,
   Package,
@@ -247,8 +245,8 @@ export default function Layout({ children }: LayoutProps) {
           sidebarExpanded ? "w-64" : "w-20"
         }`}
       >
-        {/* Logo & Side Nav Toggle Header */}
-        <div className="h-16 flex items-center justify-between px-3.5 border-b border-gray-200 overflow-hidden shrink-0">
+        {/* Logo */}
+        <div className="h-16 flex items-center px-4 border-b border-gray-200 overflow-hidden shrink-0">
           <Link to="/dashboard" className="flex items-center gap-3 min-w-max">
             <div className="h-8 w-8 rounded-lg bg-orange-500 flex items-center justify-center shrink-0 shadow-2xs">
               <span className="text-white font-bold text-sm">T</span>
@@ -256,25 +254,13 @@ export default function Layout({ children }: LayoutProps) {
             <span
               className={`font-bold text-base text-gray-900 whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${
                 sidebarExpanded
-                  ? "opacity-100 max-w-[130px] translate-x-0"
+                  ? "opacity-100 max-w-[160px] translate-x-0"
                   : "opacity-0 max-w-0 -translate-x-3 pointer-events-none"
               }`}
             >
               Template MFE
             </span>
           </Link>
-
-          {/* Tombol Collapse di Header Side Nav (saat expanded) */}
-          {sidebarExpanded && (
-            <button
-              type="button"
-              onClick={() => setSidebarExpanded(false)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 active:scale-95 transition-all cursor-pointer"
-              title="Ciutkan Sidebar"
-            >
-              <PanelLeftClose className="h-5 w-5" />
-            </button>
-          )}
         </div>
 
         {/* Navigation */}
@@ -427,34 +413,6 @@ export default function Layout({ children }: LayoutProps) {
             );
           })}
         </nav>
-
-        {/* Footer Side Nav: Tombol Collapse / Uncollapse */}
-        <div className="p-3 border-t border-gray-200 bg-gray-50/60 shrink-0">
-          <button
-            type="button"
-            onClick={() => setSidebarExpanded(!sidebarExpanded)}
-            className={`w-full flex items-center rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:scale-98 transition-all duration-200 cursor-pointer ${
-              sidebarExpanded ? "px-3 py-2 justify-between" : "p-2 justify-center"
-            }`}
-            title={sidebarExpanded ? "Ciutkan Sidebar" : "Buka Sidebar"}
-          >
-            <div className="flex items-center gap-2.5">
-              {sidebarExpanded ? (
-                <>
-                  <PanelLeftClose className="h-4 w-4 text-gray-500 shrink-0" />
-                  <span className="text-xs font-semibold text-gray-600">Ciutkan Sidebar</span>
-                </>
-              ) : (
-                <PanelLeftOpen className="h-5 w-5 text-gray-600 hover:text-orange-600 shrink-0" />
-              )}
-            </div>
-            {sidebarExpanded && (
-              <span className="text-[10px] font-mono text-gray-400 bg-gray-200/70 px-1.5 py-0.5 rounded">
-                Side Nav
-              </span>
-            )}
-          </button>
-        </div>
       </aside>
 
       {/* Main Content */}
