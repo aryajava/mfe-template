@@ -23,7 +23,6 @@ export const AppRoutes: React.FC = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
-      <Route path="/daftar" element={<Navigate to="/login?mode=register" replace />} />
       <Route path="/ganti-kata-sandi" element={<Navigate to="/login?mode=reset" replace />} />
       <Route path="/reset-password" element={<Navigate to="/login?mode=reset" replace />} />
 
