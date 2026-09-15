@@ -8,6 +8,7 @@ import { LazyMFE } from '../components/LazyMFE';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import NotFound from '../pages/NotFound';
+import ModulePlaceholder from '../pages/ModulePlaceholder';
 import { useAuth } from '../contexts/AuthContext';
 import { PageLoader } from '@template/shared';
 
@@ -78,6 +79,10 @@ export const AppRoutes: React.FC = () => {
             </MFEErrorBoundary>
           }
         />
+
+        {/* Modul Operasional & Monitoring (Backend-Driven Placeholder) */}
+        <Route path="/operasional/*" element={<ModulePlaceholder title="Operasional" />} />
+        <Route path="/monitoring/*" element={<ModulePlaceholder title="Monitoring" />} />
       </Route>
 
       {/* Redirect unauthenticated to login */}

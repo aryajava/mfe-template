@@ -11,7 +11,15 @@ import {
   Layers,
   Truck,
   ChevronDown,
-  Database
+  Database,
+  ShoppingCart,
+  ShoppingBag,
+  Bell,
+  Tag,
+  CheckCircle,
+  Activity,
+  Sliders,
+  FileText,
 } from "lucide-react";
 import { ReactNode, useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -48,41 +56,42 @@ interface NavGroupItem {
 
 type NavEntry = NavSingleItem | NavGroupItem;
 
-const navigationEntries: NavEntry[] = [
-  {
-    type: "item",
-    id: "dashboard",
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: Home,
-    menuCode: "dashboard",
-  },
-  {
-    type: "group",
-    id: "master",
-    name: "Master",
-    icon: Database,
-    children: [
-      { id: "master-produk", name: "Produk", href: "/master/produk", icon: Package, menuCode: "master-produk" },
-      { id: "master-kategori", name: "Kategori", href: "/master/kategori", icon: Layers, menuCode: "master-kategori" },
-      { id: "master-ekspedisi", name: "Ekspedisi", href: "/master/ekspedisi", icon: Truck, menuCode: "master-ekspedisi" },
-    ],
-  },
-  {
-    type: "item",
-    id: "child-mfe",
-    name: "Child MFE",
-    href: "/child",
-    icon: LayoutGrid,
-  },
-  {
-    type: "item",
-    id: "mfe-hallo",
-    name: "MFE Hallo",
-    href: "/hallo",
-    icon: Box,
-  },
-];
+const GROUP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  master: Database,
+  operasional: ShoppingCart,
+  monitoring: Activity,
+  beranda: Home,
+  laporan: FileText,
+};
+
+const MENU_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  dashboard: Home,
+  'master-produk': Package,
+  'master-kategori': Layers,
+  'master-ekspedisi': Truck,
+  pesanan: ShoppingBag,
+  'permintaan-diskon': Tag,
+  notifikasi: Bell,
+  'persetujuan-diskon': CheckCircle,
+};
+
+const MENU_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  'master-produk': "Produk",
+  'master-kategori': "Kategori",
+  'master-ekspedisi': "Ekspedisi",
+  pesanan: "Pesanan",
+  'permintaan-diskon': "Permintaan Diskon",
+  notifikasi: "Notifikasi",
+  'persetujuan-diskon': "Persetujuan Diskon",
+};
+
+const GROUP_LABELS: Record<string, string> = {
+  master: "Master Data",
+  operasional: "Operasional",
+  monitoring: "Monitoring",
+  beranda: "Beranda",
+};
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
@@ -94,27 +103,132 @@ export default function Layout({ children }: LayoutProps) {
     return saved !== null ? JSON.parse(saved) : true;
   });
 
-  const isMasterActive = location.pathname.startsWith("/master");
-  const [isMasterOpen, setIsMasterOpen] = useState<boolean>(() => {
-    const saved = storage.retrieve("navGroup_master");
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-
   useEffect(() => {
     storage.store("sidebarExpanded", JSON.stringify(sidebarExpanded));
   }, [sidebarExpanded]);
 
-  // Otomatis buka accordion Master jika pengguna berada pada rute /master/*
-  useEffect(() => {
-    if (isMasterActive) {
-      setIsMasterOpen(true);
+  const visibleNavEntries = useMemo(() => {
+    // 1. Kumpulkan daftar unik permission yang memiliki hak canRead
+    const uniqueMap = new Map<string, any>();
+    for (const [key, item] of Object.entries(menuPermissions)) {
+      if (!item || !item.canRead) continue;
+      const code = (item.menuCode || key).toLowerCase();
+      if (!uniqueMap.has(code)) {
+        uniqueMap.set(code, item);
+      }
     }
-  }, [isMasterActive]);
 
-  const toggleMasterGroup = () => {
-    setIsMasterOpen((prev) => {
-      const next = !prev;
-      storage.store("navGroup_master", JSON.stringify(next));
+    const items = Array.from(uniqueMap.values());
+
+    // 2. Fallback default jika permission belum selesai termuat
+    if (items.length === 0) {
+      return [
+        {
+          type: "item" as const,
+          id: "dashboard",
+          name: "Dashboard",
+          href: "/dashboard",
+          icon: Home,
+          menuCode: "dashboard",
+        },
+      ];
+    }
+
+    // 3. Pisahkan item single (Beranda / Dashboard) dan kelompokkan item lainnya berdasarkan groupCode
+    const singleItems: NavSingleItem[] = [];
+    const groupedMap = new Map<string, { groupName: string; children: NavChildItem[] }>();
+
+    for (const item of items) {
+      const code = (item.menuCode || "").toLowerCase();
+      const groupCode = (item.groupCode || "").toLowerCase();
+      const fullPath = item.fullPath || item.urlPrefix || `/${code}`;
+      const name =
+        MENU_LABELS[code] ||
+        item.menuName ||
+        code
+          .split("-")
+          .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1))
+          .join(" ");
+      const Icon = MENU_ICONS[code] || Box;
+
+      if (code === "dashboard" || groupCode === "beranda" || !groupCode) {
+        singleItems.push({
+          type: "item",
+          id: code,
+          name,
+          href: code === "dashboard" ? "/dashboard" : fullPath,
+          icon: Icon,
+          menuCode: code,
+        });
+      } else {
+        if (!groupedMap.has(groupCode)) {
+          const groupName =
+            item.groupName ||
+            GROUP_LABELS[groupCode] ||
+            groupCode.charAt(0).toUpperCase() + groupCode.slice(1);
+          groupedMap.set(groupCode, { groupName, children: [] });
+        }
+        groupedMap.get(groupCode)!.children.push({
+          id: code,
+          name,
+          href: fullPath,
+          icon: Icon,
+          menuCode: code,
+        });
+      }
+    }
+
+    // 4. Susun daftar entri navigasi
+    const entries: NavEntry[] = [...singleItems];
+
+    for (const [groupCode, groupData] of groupedMap.entries()) {
+      if (groupData.children.length === 0) continue;
+      entries.push({
+        type: "group",
+        id: groupCode,
+        name: groupData.groupName,
+        icon: GROUP_ICONS[groupCode] || Layers,
+        children: groupData.children,
+      });
+    }
+
+    return entries;
+  }, [menuPermissions]);
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = storage.retrieve("sidebar_open_groups");
+      return saved ? JSON.parse(saved) : { master: true, operasional: true, monitoring: true };
+    } catch {
+      return { master: true, operasional: true, monitoring: true };
+    }
+  });
+
+  // Otomatis buka accordion grup yang sedang aktif
+  useEffect(() => {
+    for (const entry of visibleNavEntries) {
+      if (entry.type === "group") {
+        const isGroupActive = entry.children.some(
+          (child) =>
+            location.pathname === child.href ||
+            location.pathname.startsWith(child.href + "/")
+        );
+        if (isGroupActive) {
+          setOpenGroups((prev) => {
+            if (prev[entry.id]) return prev;
+            const next = { ...prev, [entry.id]: true };
+            storage.store("sidebar_open_groups", JSON.stringify(next));
+            return next;
+          });
+        }
+      }
+    }
+  }, [location.pathname, visibleNavEntries]);
+
+  const toggleGroup = (groupId: string) => {
+    setOpenGroups((prev) => {
+      const next = { ...prev, [groupId]: !prev[groupId] };
+      storage.store("sidebar_open_groups", JSON.stringify(next));
       return next;
     });
   };
@@ -122,37 +236,6 @@ export default function Layout({ children }: LayoutProps) {
   const handleLogout = () => {
     logout();
   };
-
-  const visibleNavEntries = useMemo(() => {
-    return navigationEntries
-      .map((entry) => {
-        if (entry.type === "item") {
-          if (entry.menuCode && !canAccessMenu(entry.menuCode)) {
-            return null;
-          }
-          return entry;
-        } else {
-          // Saring anak menu berdasarkan hak akses peran di database
-          const visibleChildren = entry.children.filter((child) => {
-            if (child.menuCode && !canAccessMenu(child.menuCode)) {
-              return false;
-            }
-            return true;
-          });
-
-          // Sembunyikan seluruh grup bila tidak ada satu pun menu anak yang diizinkan
-          if (visibleChildren.length === 0) {
-            return null;
-          }
-
-          return {
-            ...entry,
-            children: visibleChildren,
-          };
-        }
-      })
-      .filter((entry): entry is NavEntry => entry !== null);
-  }, [canAccessMenu, menuPermissions]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -218,26 +301,27 @@ export default function Layout({ children }: LayoutProps) {
               );
             }
 
-            // Grup: Master
+            // Grup: Accordion Dinamis
             const GroupIcon = entry.icon;
             const isGroupActive = entry.children.some(
               (child) =>
                 location.pathname === child.href ||
                 location.pathname.startsWith(child.href + "/")
             );
+            const isOpen = openGroups[entry.id] ?? false;
 
             return (
               <div key={entry.id} className="pt-1">
                 {/* Accordion Header Button */}
                 <button
                   type="button"
-                  onClick={toggleMasterGroup}
+                  onClick={() => toggleGroup(entry.id)}
                   className={`w-full flex items-center rounded-lg text-xs font-bold tracking-wider uppercase transition-all duration-200 ${
                     isGroupActive
                       ? "text-orange-700 bg-orange-50/70"
                       : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
                   } ${sidebarExpanded ? "px-3 py-2 justify-between" : "px-0 py-2 justify-center"}`}
-                  title={!sidebarExpanded ? "Master Data" : ""}
+                  title={!sidebarExpanded ? entry.name : ""}
                 >
                   <div className="flex items-center">
                     <GroupIcon
@@ -257,7 +341,7 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                   <ChevronDown
                     className={`h-3.5 w-3.5 shrink-0 transition-all duration-300 ease-in-out ${
-                      isMasterOpen
+                      isOpen
                         ? "rotate-0 text-orange-600"
                         : "-rotate-90 text-gray-400"
                     } ${
@@ -268,10 +352,10 @@ export default function Layout({ children }: LayoutProps) {
                   />
                 </button>
 
-                {/* Sub-menu Item Master with CSS Grid Accordion Transition */}
+                {/* Sub-menu Item with CSS Grid Accordion Transition */}
                 <div
                   className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-                    isMasterOpen
+                    isOpen
                       ? "grid-rows-[1fr] opacity-100 mt-1"
                       : "grid-rows-[0fr] opacity-0 pointer-events-none"
                   }`}
@@ -303,7 +387,7 @@ export default function Layout({ children }: LayoutProps) {
                                 ? "gap-2.5 px-3 py-2 w-full"
                                 : "p-2 justify-center w-full"
                             }`}
-                            title={!sidebarExpanded ? `Master: ${child.name}` : ""}
+                            title={!sidebarExpanded ? `${entry.name}: ${child.name}` : ""}
                           >
                             <ChildIcon
                               className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
