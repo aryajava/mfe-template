@@ -256,6 +256,22 @@ export const AppRoutes: React.FC = () => {
           path="/pengaturan/pengaturan-toko/*"
           element={REMOTE_MFE_REGISTRY.maintain}
         />
+        <Route
+          path="/maintenance/grup-menu/*"
+          element={REMOTE_MFE_REGISTRY.maintenance}
+        />
+        <Route
+          path="/maintenance/menu/*"
+          element={REMOTE_MFE_REGISTRY.maintenance}
+        />
+        <Route
+          path="/pengaturan/grup-menu/*"
+          element={REMOTE_MFE_REGISTRY.maintain}
+        />
+        <Route
+          path="/pengaturan/menu/*"
+          element={REMOTE_MFE_REGISTRY.maintain}
+        />
 
         {/* Direct standalone routes */}
         <Route path="/pesanan/*" element={REMOTE_MFE_REGISTRY.trx} />
@@ -264,6 +280,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="/laporan-penjualan/*" element={REMOTE_MFE_REGISTRY.report} />
         <Route path="/pengaturan-aplikasi/*" element={REMOTE_MFE_REGISTRY.maintain} />
         <Route path="/pengaturan-toko/*" element={REMOTE_MFE_REGISTRY.maintain} />
+        <Route path="/grup-menu/*" element={REMOTE_MFE_REGISTRY.maintain} />
+        <Route path="/menu/*" element={REMOTE_MFE_REGISTRY.maintain} />
 
         {/* Backend-Driven Dynamic Group Routes */}
         {dynamicGroups.map(({ code, name }) => (

@@ -95,7 +95,9 @@ const MENU_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   'user-control': Users,
   'hak-akses-peran': UserCheck,
   'master-grup-menu': Layers,
+  'grup-menu': Layers,
   'master-menu': Box,
+  'menu': Box,
 };
 
 const MENU_LABELS: Record<string, string> = {
@@ -116,7 +118,9 @@ const MENU_LABELS: Record<string, string> = {
   'user-control': "User Control",
   'hak-akses-peran': "Hak Akses Peran",
   'master-grup-menu': "Grup Menu",
+  'grup-menu': "Grup Menu",
   'master-menu': "Master Menu",
+  'menu': "Master Menu",
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -282,9 +286,8 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40 flex flex-col ${
-          sidebarExpanded ? "w-64" : "w-20"
-        }`}
+        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40 flex flex-col ${sidebarExpanded ? "w-64" : "w-20"
+          }`}
       >
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-gray-200 overflow-hidden shrink-0">
@@ -293,11 +296,10 @@ export default function Layout({ children }: LayoutProps) {
               <span className="text-white font-bold text-sm">T</span>
             </div>
             <span
-              className={`font-bold text-base text-gray-900 whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${
-                sidebarExpanded
+              className={`font-bold text-base text-gray-900 whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded
                   ? "opacity-100 max-w-[160px] translate-x-0"
                   : "opacity-0 max-w-0 -translate-x-3 pointer-events-none"
-              }`}
+                }`}
             >
               Template MFE
             </span>
@@ -317,24 +319,21 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={entry.id}
                   to={entry.href}
-                  className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive
+                  className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 ${isActive
                       ? "bg-orange-50 text-orange-600 font-semibold"
                       : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                  } ${sidebarExpanded ? "px-3 py-2.5" : "px-0 py-2.5 justify-center"}`}
+                    } ${sidebarExpanded ? "px-3 py-2.5" : "px-0 py-2.5 justify-center"}`}
                   title={!sidebarExpanded ? entry.name : ""}
                 >
                   <Icon
-                    className={`h-5 w-5 shrink-0 transition-transform duration-200 ${
-                      isActive ? "text-orange-600 scale-105" : "text-gray-500"
-                    }`}
+                    className={`h-5 w-5 shrink-0 transition-transform duration-200 ${isActive ? "text-orange-600 scale-105" : "text-gray-500"
+                      }`}
                   />
                   <span
-                    className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${
-                      sidebarExpanded
+                    className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded
                         ? "opacity-100 max-w-[150px] ml-3 translate-x-0"
                         : "opacity-0 max-w-0 ml-0 -translate-x-2 pointer-events-none"
-                    }`}
+                      }`}
                   >
                     {entry.name}
                   </span>
@@ -357,57 +356,50 @@ export default function Layout({ children }: LayoutProps) {
                 <button
                   type="button"
                   onClick={() => toggleGroup(entry.id)}
-                  className={`w-full flex items-center rounded-lg text-xs font-bold tracking-wider uppercase transition-all duration-200 ${
-                    isGroupActive
+                  className={`w-full flex items-center rounded-lg text-xs font-bold tracking-wider uppercase transition-all duration-200 ${isGroupActive
                       ? "text-orange-700 bg-orange-50/70"
                       : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-                  } ${sidebarExpanded ? "px-3 py-2 justify-between" : "px-0 py-2 justify-center"}`}
+                    } ${sidebarExpanded ? "px-3 py-2 justify-between" : "px-0 py-2 justify-center"}`}
                   title={!sidebarExpanded ? entry.name : ""}
                 >
                   <div className="flex items-center">
                     <GroupIcon
-                      className={`h-4 w-4 shrink-0 transition-colors ${
-                        isGroupActive ? "text-orange-600" : "text-gray-400"
-                      }`}
+                      className={`h-4 w-4 shrink-0 transition-colors ${isGroupActive ? "text-orange-600" : "text-gray-400"
+                        }`}
                     />
                     <span
-                      className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${
-                        sidebarExpanded
+                      className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded
                           ? "opacity-100 max-w-[120px] ml-2.5 translate-x-0"
                           : "opacity-0 max-w-0 ml-0 -translate-x-2 pointer-events-none"
-                      }`}
+                        }`}
                     >
                       {entry.name}
                     </span>
                   </div>
                   <ChevronDown
-                    className={`h-3.5 w-3.5 shrink-0 transition-all duration-300 ease-in-out ${
-                      isOpen
+                    className={`h-3.5 w-3.5 shrink-0 transition-all duration-300 ease-in-out ${isOpen
                         ? "rotate-0 text-orange-600"
                         : "-rotate-90 text-gray-400"
-                    } ${
-                      sidebarExpanded
+                      } ${sidebarExpanded
                         ? "opacity-100 scale-100"
                         : "opacity-0 scale-50 max-w-0 overflow-hidden"
-                    }`}
+                      }`}
                   />
                 </button>
 
                 {/* Sub-menu Item with CSS Grid Accordion Transition */}
                 <div
-                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-                    isOpen
+                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${isOpen
                       ? "grid-rows-[1fr] opacity-100 mt-1"
                       : "grid-rows-[0fr] opacity-0 pointer-events-none"
-                  }`}
+                    }`}
                 >
                   <div className="overflow-hidden">
                     <div
-                      className={`transition-all duration-300 space-y-1 py-0.5 ${
-                        sidebarExpanded
+                      className={`transition-all duration-300 space-y-1 py-0.5 ${sidebarExpanded
                           ? "ml-4 pl-2.5 border-l-2 border-orange-100"
                           : "flex flex-col items-center border-y border-gray-100 my-1 py-1"
-                      }`}
+                        }`}
                     >
                       {entry.children.map((child) => {
                         const ChildIcon = child.icon;
@@ -419,28 +411,24 @@ export default function Layout({ children }: LayoutProps) {
                           <Link
                             key={child.id}
                             to={child.href}
-                            className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 ${
-                              isChildActive
+                            className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 ${isChildActive
                                 ? "bg-orange-50 text-orange-600 font-semibold shadow-2xs"
                                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                            } ${
-                              sidebarExpanded
+                              } ${sidebarExpanded
                                 ? "gap-2.5 px-3 py-2 w-full"
                                 : "p-2 justify-center w-full"
-                            }`}
+                              }`}
                             title={!sidebarExpanded ? `${entry.name}: ${child.name}` : ""}
                           >
                             <ChildIcon
-                              className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
-                                isChildActive ? "text-orange-600 scale-105" : "text-gray-400"
-                              }`}
+                              className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isChildActive ? "text-orange-600 scale-105" : "text-gray-400"
+                                }`}
                             />
                             <span
-                              className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${
-                                sidebarExpanded
+                              className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded
                                   ? "opacity-100 max-w-[130px] translate-x-0"
                                   : "opacity-0 max-w-0 -translate-x-2 pointer-events-none"
-                              }`}
+                                }`}
                             >
                               {child.name}
                             </span>
@@ -467,9 +455,8 @@ export default function Layout({ children }: LayoutProps) {
               title={sidebarExpanded ? "Ciutkan Sidebar" : "Buka Sidebar"}
             >
               <PanelLeft
-                className={`h-4 w-4 text-gray-600 transition-transform duration-300 ease-in-out ${
-                  !sidebarExpanded ? "rotate-180 text-orange-600" : ""
-                }`}
+                className={`h-4 w-4 text-gray-600 transition-transform duration-300 ease-in-out ${!sidebarExpanded ? "rotate-180 text-orange-600" : ""
+                  }`}
               />
             </button>
           </div>
