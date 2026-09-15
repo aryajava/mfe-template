@@ -22,6 +22,10 @@ import {
   FileText,
   Users,
   UserCheck,
+  Settings,
+  Store,
+  TrendingUp,
+  Wrench,
 } from "lucide-react";
 import { ReactNode, useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -61,10 +65,16 @@ type NavEntry = NavSingleItem | NavGroupItem;
 const GROUP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   master: Database,
   transaksi: ShoppingBag,
+  trx: ShoppingBag,
   operasional: ShoppingCart,
   monitoring: Activity,
+  monitor: Activity,
   beranda: Home,
   laporan: FileText,
+  report: FileText,
+  pengaturan: Settings,
+  maintenance: Wrench,
+  maintain: Wrench,
 };
 
 const MENU_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -78,6 +88,14 @@ const MENU_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   'permintaan-diskon': Tag,
   notifikasi: Bell,
   'persetujuan-diskon': CheckCircle,
+  'laporan-penjualan': TrendingUp,
+  'pengaturan-aplikasi': Sliders,
+  'pengaturan-toko': Store,
+  'audit-log': Activity,
+  'user-control': Users,
+  'hak-akses-peran': UserCheck,
+  'master-grup-menu': Layers,
+  'master-menu': Box,
 };
 
 const MENU_LABELS: Record<string, string> = {
@@ -91,14 +109,29 @@ const MENU_LABELS: Record<string, string> = {
   'permintaan-diskon': "Permintaan Diskon",
   notifikasi: "Notifikasi",
   'persetujuan-diskon': "Persetujuan Diskon",
+  'laporan-penjualan': "Laporan Penjualan",
+  'pengaturan-aplikasi': "Pengaturan Aplikasi",
+  'pengaturan-toko': "Pengaturan Toko",
+  'audit-log': "Audit Log",
+  'user-control': "User Control",
+  'hak-akses-peran': "Hak Akses Peran",
+  'master-grup-menu': "Grup Menu",
+  'master-menu': "Master Menu",
 };
 
 const GROUP_LABELS: Record<string, string> = {
   master: "Master Data",
   transaksi: "Transaksi",
+  trx: "Transaksi",
   operasional: "Operasional",
   monitoring: "Monitoring",
+  monitor: "Monitoring",
   beranda: "Beranda",
+  laporan: "Laporan",
+  report: "Laporan",
+  pengaturan: "Pengaturan",
+  maintenance: "Maintenance",
+  maintain: "Maintenance",
 };
 
 export default function Layout({ children }: LayoutProps) {

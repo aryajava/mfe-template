@@ -4,3 +4,7 @@ packages:
   - 'template-mfe-child'
   - 'mfe-hallo'
   - 'mfe-master'
+  - 'mfe-trx'
+  - 'mfe-monitor'
+  - 'mfe-report'
+  - 'mfe-maintain'

@@ -19,7 +19,11 @@
   const MFE_ROUTES = {
     childMfe: "http://localhost:5006/remoteEntry.js",
     mfeHallo: "http://localhost:5007/remoteEntry.js",
-    mfeMaster: "http://localhost:5008/remoteEntry.js"
+    mfeMaster: "http://localhost:5008/remoteEntry.js",
+    mfeTrx: "http://localhost:5009/remoteEntry.js",
+    mfeMonitor: "http://localhost:5010/remoteEntry.js",
+    mfeReport: "http://localhost:5011/remoteEntry.js",
+    mfeMaintain: "http://localhost:5012/remoteEntry.js"
   };
 
   const _actualEnv = {

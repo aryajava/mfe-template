@@ -48,6 +48,116 @@ const REMOTE_MFE_REGISTRY: Record<string, React.ReactNode> = {
       />
     </MFEErrorBoundary>
   ),
+  trx: (
+    <MFEErrorBoundary mfeName="MFE Trx">
+      <LazyMFE
+        scope="mfeTrx"
+        module="./Module"
+        url="http://localhost:5009/remoteEntry.js"
+        basePath="/trx"
+      />
+    </MFEErrorBoundary>
+  ),
+  transaksi: (
+    <MFEErrorBoundary mfeName="MFE Trx">
+      <LazyMFE
+        scope="mfeTrx"
+        module="./Module"
+        url="http://localhost:5009/remoteEntry.js"
+        basePath="/transaksi"
+      />
+    </MFEErrorBoundary>
+  ),
+  operasional: (
+    <MFEErrorBoundary mfeName="MFE Trx">
+      <LazyMFE
+        scope="mfeTrx"
+        module="./Module"
+        url="http://localhost:5009/remoteEntry.js"
+        basePath="/operasional"
+      />
+    </MFEErrorBoundary>
+  ),
+  pesanan: (
+    <MFEErrorBoundary mfeName="MFE Trx">
+      <LazyMFE
+        scope="mfeTrx"
+        module="./Module"
+        url="http://localhost:5009/remoteEntry.js"
+        basePath="/pesanan"
+      />
+    </MFEErrorBoundary>
+  ),
+  monitor: (
+    <MFEErrorBoundary mfeName="MFE Monitor">
+      <LazyMFE
+        scope="mfeMonitor"
+        module="./Module"
+        url="http://localhost:5010/remoteEntry.js"
+        basePath="/monitor"
+      />
+    </MFEErrorBoundary>
+  ),
+  monitoring: (
+    <MFEErrorBoundary mfeName="MFE Monitor">
+      <LazyMFE
+        scope="mfeMonitor"
+        module="./Module"
+        url="http://localhost:5010/remoteEntry.js"
+        basePath="/monitoring"
+      />
+    </MFEErrorBoundary>
+  ),
+  report: (
+    <MFEErrorBoundary mfeName="MFE Report">
+      <LazyMFE
+        scope="mfeReport"
+        module="./Module"
+        url="http://localhost:5011/remoteEntry.js"
+        basePath="/report"
+      />
+    </MFEErrorBoundary>
+  ),
+  laporan: (
+    <MFEErrorBoundary mfeName="MFE Report">
+      <LazyMFE
+        scope="mfeReport"
+        module="./Module"
+        url="http://localhost:5011/remoteEntry.js"
+        basePath="/laporan"
+      />
+    </MFEErrorBoundary>
+  ),
+  maintain: (
+    <MFEErrorBoundary mfeName="MFE Maintain">
+      <LazyMFE
+        scope="mfeMaintain"
+        module="./Module"
+        url="http://localhost:5012/remoteEntry.js"
+        basePath="/maintain"
+      />
+    </MFEErrorBoundary>
+  ),
+  maintenance: (
+    <MFEErrorBoundary mfeName="MFE Maintain">
+      <LazyMFE
+        scope="mfeMaintain"
+        module="./Module"
+        url="http://localhost:5012/remoteEntry.js"
+        basePath="/maintenance"
+      />
+    </MFEErrorBoundary>
+  ),
+  pengaturan: (
+    <MFEErrorBoundary mfeName="MFE Maintain">
+      <LazyMFE
+        scope="mfeMaintain"
+        module="./Module"
+        url="http://localhost:5012/remoteEntry.js"
+        basePath="/pengaturan"
+      />
+    </MFEErrorBoundary>
+  ),
 };
 
 export const AppRoutes: React.FC = () => {
@@ -116,6 +226,44 @@ export const AppRoutes: React.FC = () => {
         {/* Static test/starter remote MFEs */}
         <Route path="/child/*" element={REMOTE_MFE_REGISTRY.child} />
         <Route path="/hallo/*" element={REMOTE_MFE_REGISTRY.hallo} />
+
+        {/* Specific MFE Route Overrides */}
+        <Route
+          path="/monitoring/laporan-penjualan/*"
+          element={REMOTE_MFE_REGISTRY.report}
+        />
+        <Route
+          path="/monitoring/permintaan-diskon/*"
+          element={REMOTE_MFE_REGISTRY.monitor}
+        />
+        <Route
+          path="/monitoring/persetujuan-diskon/*"
+          element={REMOTE_MFE_REGISTRY.monitor}
+        />
+        <Route
+          path="/transaksi/pesanan/*"
+          element={REMOTE_MFE_REGISTRY.trx}
+        />
+        <Route
+          path="/operasional/pesanan/*"
+          element={REMOTE_MFE_REGISTRY.trx}
+        />
+        <Route
+          path="/pengaturan/pengaturan-aplikasi/*"
+          element={REMOTE_MFE_REGISTRY.maintain}
+        />
+        <Route
+          path="/pengaturan/pengaturan-toko/*"
+          element={REMOTE_MFE_REGISTRY.maintain}
+        />
+
+        {/* Direct standalone routes */}
+        <Route path="/pesanan/*" element={REMOTE_MFE_REGISTRY.trx} />
+        <Route path="/permintaan-diskon/*" element={REMOTE_MFE_REGISTRY.monitor} />
+        <Route path="/persetujuan-diskon/*" element={REMOTE_MFE_REGISTRY.monitor} />
+        <Route path="/laporan-penjualan/*" element={REMOTE_MFE_REGISTRY.report} />
+        <Route path="/pengaturan-aplikasi/*" element={REMOTE_MFE_REGISTRY.maintain} />
+        <Route path="/pengaturan-toko/*" element={REMOTE_MFE_REGISTRY.maintain} />
 
         {/* Backend-Driven Dynamic Group Routes */}
         {dynamicGroups.map(({ code, name }) => (
