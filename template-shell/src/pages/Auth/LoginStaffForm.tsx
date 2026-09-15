@@ -37,19 +37,19 @@ export const LoginStaffForm: React.FC<LoginStaffFormProps> = ({ onGoToResetPassw
   return (
     <form onSubmit={handleLogin} className="space-y-4">
       {errorMessage && (
-        <div className="p-3.5 bg-red-50/90 border border-red-200/80 text-red-700 text-xs rounded-xl flex items-start gap-2.5 leading-relaxed">
-          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" strokeWidth={1.75} />
+        <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2.5 leading-relaxed">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <span className="font-medium text-red-800">{errorMessage}</span>
+            <span>{errorMessage}</span>
             {isBlocked && (
-              <div className="mt-2.5 pt-2 border-t border-red-200/80">
+              <div className="mt-2 pt-2 border-t border-red-200/80">
                 <button
                   type="button"
                   onClick={() => onGoToResetPassword(username)}
-                  className="font-semibold text-red-900 hover:text-red-950 underline inline-flex items-center gap-1.5 cursor-pointer text-xs"
+                  className="font-semibold text-red-800 hover:text-red-950 underline inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <ShieldAlert className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Buka Blokir &amp; Atur Kata Sandi Baru
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  Buka Blokir & Atur Kata Sandi Baru
                 </button>
               </div>
             )}
@@ -58,45 +58,36 @@ export const LoginStaffForm: React.FC<LoginStaffFormProps> = ({ onGoToResetPassw
       )}
 
       {/* Username Field */}
-      <div className="space-y-1.5">
-        <label htmlFor="staff-username" className="block text-xs font-semibold text-slate-700 tracking-wide">
-          Username Pengurus
+      <div>
+        <label htmlFor="staff-username" className="block text-sm font-medium text-gray-700 mb-1.5">
+          Username
         </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-            <User className="w-4.5 h-4.5" strokeWidth={1.75} />
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+            <User className="w-5 h-5" />
           </div>
           <input
             id="staff-username"
             type="text"
-            placeholder="Masukkan username (contoh: admin)"
+            placeholder="Masukkan username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
             autoComplete="username"
             autoFocus
-            className="w-full h-12 pl-11 pr-4 bg-slate-50/70 hover:bg-slate-50/40 focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-200"
+            className="w-full h-11 pl-11 pr-4 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 transition-colors shadow-xs"
           />
         </div>
       </div>
 
       {/* Password Field */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <label htmlFor="staff-password" className="block text-xs font-semibold text-slate-700 tracking-wide">
-            Kata Sandi
-          </label>
-          <button
-            type="button"
-            onClick={() => onGoToResetPassword(username)}
-            className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline cursor-pointer transition-colors"
-          >
-            Lupa sandi?
-          </button>
-        </div>
+      <div>
+        <label htmlFor="staff-password" className="block text-sm font-medium text-gray-700 mb-1.5">
+          Kata Sandi
+        </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-            <Lock className="w-4.5 h-4.5" strokeWidth={1.75} />
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+            <Lock className="w-5 h-5" />
           </div>
           <input
             id="staff-password"
@@ -106,50 +97,48 @@ export const LoginStaffForm: React.FC<LoginStaffFormProps> = ({ onGoToResetPassw
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            className="w-full h-12 pl-11 pr-11 bg-slate-50/70 hover:bg-slate-50/40 focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all duration-200"
+            className="w-full h-11 pl-11 pr-11 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20 transition-colors shadow-xs"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
             aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
           >
-            {showPassword ? <EyeOff className="w-4.5 h-4.5" strokeWidth={1.75} /> : <Eye className="w-4.5 h-4.5" strokeWidth={1.75} />}
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
-      {/* Nested CTA (Button-in-Button) */}
+      {/* Submit Button */}
       <button
         type="submit"
         disabled={loading}
-        className="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-700 active:scale-[0.985] text-white font-semibold text-sm pl-5 pr-2 flex items-center justify-between group shadow-md shadow-orange-600/20 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:pointer-events-none select-none mt-5"
+        className="w-full h-11 mt-2 bg-orange-600 hover:bg-orange-700 active:scale-[0.99] text-white font-semibold rounded-xl text-sm shadow-xs hover:shadow transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:pointer-events-none"
       >
         {loading ? (
-          <div className="w-full flex items-center justify-center gap-2.5">
+          <span className="inline-flex items-center gap-2">
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            <span className="text-sm font-semibold">Memverifikasi Kredensial...</span>
-          </div>
+            <span>Memverifikasi Kredensial...</span>
+          </span>
         ) : (
           <>
-            <span className="tracking-tight font-semibold">Masuk ke Panel Pengurus</span>
-            <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-white transition-transform duration-200 group-hover:translate-x-0.5">
-              <ArrowRight className="w-4 h-4" strokeWidth={2} />
-            </div>
+            <span>Masuk ke Panel Pengurus</span>
+            <ArrowRight className="w-4 h-4" />
           </>
         )}
       </button>
 
-      {/* Helper text */}
-      <div className="text-center pt-2">
-        <p className="text-xs text-slate-400 leading-relaxed font-normal">
-          Akun terblokir setelah 3x salah sandi?{' '}
+      {/* Helper text / Lupa kata sandi */}
+      <div className="pt-3 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Lupa kata sandi atau akun terblokir?{' '}
           <button
             type="button"
             onClick={() => onGoToResetPassword(username)}
             className="font-medium text-orange-600 hover:text-orange-700 hover:underline cursor-pointer transition-colors"
           >
-            Buka blokir akun
+            Buka blokir & atur ulang
           </button>
         </p>
       </div>
