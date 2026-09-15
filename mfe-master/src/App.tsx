@@ -1,49 +1,125 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Layers, Package, Truck, Home, UserCheck, Shield } from 'lucide-react';
+import { Layers, Package, Truck, Home, Shield, RefreshCw } from 'lucide-react';
+import { useAuth } from '@template/shared';
 import MasterRoutes from './routes/masterRoutes';
 import { storage } from './utils/sastStorage';
 
 /**
  * Root App untuk standalone development (port 5008)
- * Dilengkapi dengan bilah navigasi mandiri dan penguji peran (role tester)
+ * Dilengkapi dengan bilah navigasi dinamis dan penguji peran (role tester)
  */
 const App: React.FC = () => {
   const location = useLocation();
+  const { user, canAccessMenu } = useAuth();
+
   const [currentRole, setCurrentRole] = useState<string>(() => {
     try {
       const raw = storage.retrieve('user');
       if (raw) {
         const u = JSON.parse(raw);
-        return u.roles?.[0] || 'SA';
+        return u.roles?.[0] || 'ADMIN';
       }
     } catch {
       // ignore
     }
-    return 'SA';
+    return 'ADMIN';
   });
-
-  const isSa = currentRole.toUpperCase() === 'SA';
-  const isOwner = currentRole.toUpperCase() === 'OWNER';
-
-  const navPermissions: Record<string, boolean> = {
-    'master-produk': true,
-    'master-kategori': true,
-    'master-ekspedisi': isSa || isOwner,
-  };
 
   const handleRoleChange = (newRole: string) => {
     setCurrentRole(newRole);
+    if (newRole === 'GUEST') {
+      storage.remove('user');
+      storage.remove('menuPermissions');
+      storage.remove('apiKey');
+      storage.remove('token');
+      window.location.reload();
+      return;
+    }
+
     const mockUser = {
-      id: newRole === 'SA' ? '1' : newRole === 'OWNER' ? '2' : '3',
+      id: newRole === 'SA' ? '1' : newRole === 'OWNER' ? '2' : newRole === 'ADMIN' ? '3' : '4',
       email: `${newRole.toLowerCase()}@tokogklaku.com`,
-      name: `${newRole === 'SA' ? 'Super Admin' : newRole === 'OWNER' ? 'Pemilik Toko' : 'Admin Toko'} (Standalone)`,
+      name: `${
+        newRole === 'SA'
+          ? 'Super Admin'
+          : newRole === 'OWNER'
+          ? 'Pemilik Toko'
+          : newRole === 'ADMIN'
+          ? 'Admin Toko'
+          : 'Staf Toko'
+      } (Standalone)`,
       roles: [newRole.toLowerCase(), newRole.toUpperCase()],
       permissions: newRole === 'SA' || newRole === 'OWNER' ? ['*'] : ['read', 'write'],
     };
     storage.store('user', JSON.stringify(mockUser));
-    // Trigger storage event or refresh to update guards and page permissions
+    // Hapus override permission agar bootstrap menggunakan aturan matriks peran yang sinkron
+    storage.remove('menuPermissions');
     window.location.reload();
+  };
+
+  const handleSyncWithBackend = async () => {
+    const defaultKey = storage.retrieve('apiKey') || '733939ea4a1b4844a2c63737961ed35b';
+    const apiKey = prompt('Masukkan X-Api-Key backend C# (:5251):', defaultKey);
+    if (!apiKey) return;
+
+    try {
+      const res = await fetch('http://localhost:5251/api/role-menus/my-permissions', {
+        headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const rawPerms = json.data?.permissions || json.permissions || {};
+      const normalized: Record<string, any> = {};
+      for (const [k, v] of Object.entries(rawPerms)) {
+        normalized[k.toLowerCase()] = v;
+        if ((v as any).fullPath) {
+          normalized[(v as any).fullPath.toLowerCase()] = v;
+        }
+      }
+
+      storage.store('apiKey', apiKey);
+      storage.store('token', apiKey);
+      storage.store('menuPermissions', JSON.stringify(normalized));
+
+      // Fetch user profil jika ada
+      const userRes = await fetch('http://localhost:5251/api/auth/me', {
+        headers: { 'X-Api-Key': apiKey },
+      }).catch(() => null);
+
+      if (userRes && userRes.ok) {
+        const userJson = await userRes.json();
+        const u = userJson.data || userJson;
+        const role = u.role || json.data?.role || 'ADMIN';
+        storage.store(
+          'user',
+          JSON.stringify({
+            id: String(u.id || '1'),
+            name: u.displayName || u.username || 'User Backend',
+            email: u.username || 'user@backend.local',
+            roles: [role.toLowerCase(), role.toUpperCase()],
+            permissions: role.toUpperCase() === 'SA' ? ['*'] : ['read', 'write'],
+          })
+        );
+      } else {
+        const role = json.data?.role || 'ADMIN';
+        storage.store(
+          'user',
+          JSON.stringify({
+            id: '1',
+            name: `User Backend (${role})`,
+            email: `${role.toLowerCase()}@tokogklaku.com`,
+            roles: [role.toLowerCase(), role.toUpperCase()],
+            permissions: role.toUpperCase() === 'SA' ? ['*'] : ['read', 'write'],
+          })
+        );
+      }
+
+      alert('Berhasil sinkronisasi hak akses langsung dari backend C#!');
+      window.location.reload();
+    } catch (err) {
+      alert(`Gagal sinkronisasi dengan backend: ${err}`);
+    }
   };
 
   const navItems = [
@@ -53,9 +129,10 @@ const App: React.FC = () => {
     { label: 'Ekspedisi', href: '/master/ekspedisi', icon: Truck, menuCode: 'master-ekspedisi' },
   ];
 
+  // Dynamic menu filtering berbasis canAccessMenu (sama persis seperti Shell)
   const visibleNavItems = navItems.filter((item) => {
     if (!item.menuCode) return true;
-    return navPermissions[item.menuCode] ?? false;
+    return canAccessMenu(item.menuCode);
   });
 
   return (
@@ -107,6 +184,16 @@ const App: React.FC = () => {
 
           {/* Penguji Peran (Role Switcher Standalone) */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSyncWithBackend}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-orange-600 transition-colors shadow-2xs cursor-pointer"
+              title="Sinkronkan hak akses langsung dari backend C# (:5251)"
+            >
+              <RefreshCw className="h-3.5 w-3.5 text-orange-600" />
+              <span>Sinkron API</span>
+            </button>
+
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-lg text-xs">
               <Shield className="h-3.5 w-3.5 text-orange-600" />
               <span className="text-gray-500 font-medium">Uji Peran:</span>
@@ -115,9 +202,11 @@ const App: React.FC = () => {
                 onChange={(e) => handleRoleChange(e.target.value)}
                 className="bg-transparent font-bold text-gray-800 focus:outline-none cursor-pointer text-xs"
               >
-                <option value="SA">Super Admin (SA)</option>
-                <option value="OWNER">Pemilik Toko (Owner)</option>
-                <option value="ADMIN">Admin Toko (Admin)</option>
+                <option value="ADMIN">Admin Toko (Hanya Produk)</option>
+                <option value="OWNER">Pemilik Toko (Semua Master)</option>
+                <option value="SA">Super Admin (Semua Akses)</option>
+                <option value="STAFF">Staf Toko (Hanya Lihat)</option>
+                <option value="GUEST">Tamu (Tanpa Akses)</option>
               </select>
             </div>
           </div>
