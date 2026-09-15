@@ -23,6 +23,9 @@ export const AppRoutes: React.FC = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/daftar" element={<Navigate to="/login?mode=register" replace />} />
+      <Route path="/ganti-kata-sandi" element={<Navigate to="/login?mode=reset" replace />} />
+      <Route path="/reset-password" element={<Navigate to="/login?mode=reset" replace />} />
 
       {/* Protected routes with Layout */}
       <Route
@@ -83,6 +86,8 @@ export const AppRoutes: React.FC = () => {
         {/* Modul Operasional & Monitoring (Backend-Driven Placeholder) */}
         <Route path="/operasional/*" element={<ModulePlaceholder title="Operasional" />} />
         <Route path="/monitoring/*" element={<ModulePlaceholder title="Monitoring" />} />
+        <Route path="/maintenance/*" element={<ModulePlaceholder title="Maintenance" />} />
+        <Route path="/pengaturan/*" element={<ModulePlaceholder title="Pengaturan" />} />
       </Route>
 
       {/* Redirect unauthenticated to login */}

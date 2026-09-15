@@ -35,6 +35,9 @@ export interface AuthContextType {
   menuPermissions: Record<string, MenuPermissionItem>;
   canAccessMenu: (menuCodeOrPath: string) => boolean;
   canPerformAction: (menuCodeOrPath: string, action: 'create' | 'update' | 'delete' | 'status') => boolean;
+  loginCustomer?: (email: string, password: string) => Promise<void>;
+  registerCustomer?: (name: string, email: string, password: string) => Promise<any>;
+  resetPassword?: (identifier: string, newPassword: string, confirmPassword: string, isCustomer: boolean) => Promise<any>;
 }
 
 export interface SharedContextType {

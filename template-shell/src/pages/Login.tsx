@@ -1,115 +1,191 @@
-import React, { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@template/shared';
-import { Eye, EyeOff, AlertCircle, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Shield, ShoppingBag } from 'lucide-react';
+import AuthContainer from './Auth/AuthContainer';
+import LoginStaffForm from './Auth/LoginStaffForm';
+import LoginCustomerForm from './Auth/LoginCustomerForm';
+import RegisterCustomerForm from './Auth/RegisterCustomerForm';
+import ResetPasswordForm from './Auth/ResetPasswordForm';
+
+type AuthMode = 'login' | 'register' | 'reset';
+type LoginTab = 'staff' | 'customer';
 
 export const Login: React.FC = () => {
-  const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { login } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrorMessage(null);
-    setLoading(true);
-    try {
-      await login(username.trim(), password);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Login gagal. Periksa kembali username dan password Anda.');
-    } finally {
-      setLoading(false);
+  // Mode: login, register, reset
+  const [authMode, setAuthMode] = useState<AuthMode>(() => {
+    const m = searchParams.get('mode');
+    if (m === 'register') return 'register';
+    if (m === 'reset') return 'reset';
+    return 'login';
+  });
+
+  // Tab: staff vs customer
+  const [loginTab, setLoginTab] = useState<LoginTab>(() => {
+    const t = searchParams.get('tab');
+    if (t === 'customer') return 'customer';
+    return 'staff';
+  });
+
+  const [resetIdentifier, setResetIdentifier] = useState<string>(() => {
+    return searchParams.get('email') || searchParams.get('username') || '';
+  });
+
+  const [resetIsCustomer, setResetIsCustomer] = useState<boolean>(() => {
+    return Boolean(searchParams.get('email')) || searchParams.get('type') === 'customer';
+  });
+
+  // Sinkronkan state dengan query params jika berubah dari luar
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    const tabParam = searchParams.get('tab');
+    const emailParam = searchParams.get('email');
+    const userParam = searchParams.get('username');
+
+    if (modeParam === 'register') {
+      setAuthMode('register');
+    } else if (modeParam === 'reset') {
+      setAuthMode('reset');
+      if (emailParam) {
+        setResetIdentifier(emailParam);
+        setResetIsCustomer(true);
+      } else if (userParam) {
+        setResetIdentifier(userParam);
+        setResetIsCustomer(false);
+      }
+    } else {
+      setAuthMode('login');
+      if (tabParam === 'customer') {
+        setLoginTab('customer');
+      } else if (tabParam === 'staff') {
+        setLoginTab('staff');
+      }
     }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: LoginTab) => {
+    setLoginTab(tab);
+    setSearchParams({ tab });
   };
 
-  const autofillAccount = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setErrorMessage(null);
+  const handleGoToRegister = () => {
+    setAuthMode('register');
+    setSearchParams({ mode: 'register' });
   };
+
+  const handleGoToResetPassword = (identifier?: string, isCust?: boolean) => {
+    setAuthMode('reset');
+    if (identifier) {
+      setResetIdentifier(identifier);
+    }
+    if (isCust !== undefined) {
+      setResetIsCustomer(isCust);
+    } else {
+      setResetIsCustomer(loginTab === 'customer');
+    }
+
+    const params: Record<string, string> = { mode: 'reset' };
+    if (identifier) {
+      if (isCust || loginTab === 'customer') {
+        params.email = identifier;
+      } else {
+        params.username = identifier;
+      }
+    }
+    setSearchParams(params);
+  };
+
+  const handleGoToLogin = (tab: LoginTab = loginTab) => {
+    setAuthMode('login');
+    setLoginTab(tab);
+    setSearchParams({ tab });
+  };
+
+  // Header Title & Subtitle kontekstual
+  const headerMeta = (() => {
+    if (authMode === 'register') {
+      return {
+        title: 'Toko GKLaku',
+        subtitle: 'Buat akun pelanggan baru untuk kemudahan belanja',
+      };
+    }
+    if (authMode === 'reset') {
+      return {
+        title: 'Toko GKLaku',
+        subtitle: 'Buka blokir akun dan atur kata sandi baru',
+      };
+    }
+    if (loginTab === 'customer') {
+      return {
+        title: 'Toko GKLaku',
+        subtitle: 'Masuk untuk belanja produk dan mengecek status pesanan',
+      };
+    }
+    return {
+      title: 'Toko GKLaku',
+      subtitle: 'Silakan masuk ke panel pengurus toko untuk mengelola sistem',
+    };
+  })();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-600 via-orange-500 to-orange-700 p-8">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">Template MFE</h1>
-          <p className="text-orange-100 mt-2">Aplikasi Shell Terpadu & Micro-Frontend</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-xl p-6 border border-orange-100">
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="w-6 h-6 text-orange-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Masuk Akun</h2>
-          </div>
-          <p className="text-gray-600 mb-6 text-sm">
-            Gunakan kredensial pengurus toko untuk mengakses sistem.
-          </p>
-
-          {errorMessage && (
-            <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md flex items-start gap-2.5">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600 mt-0.5" />
-              <div className="leading-snug">{errorMessage}</div>
-            </div>
-          )}
-
-          <form method="post" onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="username" className="text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                placeholder="Masukkan username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="w-full h-11 px-3 border border-gray-300 rounded-md focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-gray-900"
-                autoComplete="username"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Masukkan password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full h-11 px-3 pr-10 border border-gray-300 rounded-md focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-gray-900"
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1"
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-11 text-base bg-orange-600 hover:bg-orange-700 text-white font-medium shadow-sm transition-colors"
-              disabled={loading}
+    <AuthContainer title={headerMeta.title} subtitle={headerMeta.subtitle}>
+      {/* Segmented Tab Switcher (Hanya ditampilkan pada mode login) */}
+      {authMode === 'login' && (
+        <div className="mb-5">
+          <div className="flex p-1 bg-gray-100 rounded-xl text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => handleTabChange('staff')}
+              className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                loginTab === 'staff'
+                  ? 'bg-white text-gray-900 shadow-xs font-bold'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
             >
-              {loading ? 'Memproses autentikasi...' : 'Masuk ke Sistem'}
-            </Button>
-          </form>
+              <Shield className="w-3.5 h-3.5 text-orange-600" />
+              <span>Pengelola Toko</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('customer')}
+              className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                loginTab === 'customer'
+                  ? 'bg-white text-gray-900 shadow-xs font-bold'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-orange-600" />
+              <span>Pelanggan Toko</span>
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* Konten Form sesuai AuthMode & Tab */}
+      {authMode === 'login' && loginTab === 'staff' && (
+        <LoginStaffForm onGoToResetPassword={(user) => handleGoToResetPassword(user, false)} />
+      )}
+
+      {authMode === 'login' && loginTab === 'customer' && (
+        <LoginCustomerForm
+          onGoToRegister={handleGoToRegister}
+          onGoToResetPassword={(mail) => handleGoToResetPassword(mail, true)}
+        />
+      )}
+
+      {authMode === 'register' && (
+        <RegisterCustomerForm onGoToLogin={() => handleGoToLogin('customer')} />
+      )}
+
+      {authMode === 'reset' && (
+        <ResetPasswordForm
+          initialIdentifier={resetIdentifier}
+          initialIsCustomer={resetIsCustomer}
+          onGoToLogin={() => handleGoToLogin(resetIsCustomer ? 'customer' : 'staff')}
+        />
+      )}
+    </AuthContainer>
   );
 };
 

@@ -259,6 +259,120 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     [navigate]
   );
 
+  const loginCustomer = useCallback(
+    async (email: string, password: string) => {
+      setIsLoading(true);
+      try {
+        const authApiUrl = getApiUrl("auth");
+        const response = await fetch(`${authApiUrl}/auth/customer/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.isSuccess) {
+          const errMsg = data?.message || data?.errors?.[0] || "Email atau password salah.";
+          const isBlocked = data?.statusCode === 403 || data?.data?.isBlocked;
+          const error: any = new Error(errMsg);
+          error.isBlocked = isBlocked;
+          error.email = email;
+          throw error;
+        }
+
+        const rawCustomer = data.data?.customer || data.data?.Customer;
+        if (!rawCustomer) {
+          throw new Error("Respon login tidak valid: Data pelanggan tidak ditemukan.");
+        }
+
+        const userData: User = {
+          id: String(rawCustomer.id),
+          email: rawCustomer.email,
+          name: rawCustomer.display || rawCustomer.name || rawCustomer.email,
+          roles: ["customer", "CUSTOMER"],
+          permissions: ["read", "customer"],
+        };
+
+        setUser(userData);
+        storage.store("user", JSON.stringify(userData));
+        storage.store("authenticated", "true");
+        storage.store("token", `CUSTOMER-${rawCustomer.id}`);
+        storage.store("apiKey", `CUSTOMER-${rawCustomer.id}`);
+        setMenuPermissions({});
+        setIsPermissionsLoaded(true);
+
+        eventBus.publish(MFE_EVENTS.USER_LOGGED_IN, { user: rawCustomer, role: "CUSTOMER" });
+        navigate("/dashboard");
+      } catch (error) {
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [navigate]
+  );
+
+  const registerCustomer = useCallback(
+    async (name: string, email: string, password: string) => {
+      setIsLoading(true);
+      try {
+        const authApiUrl = getApiUrl("auth");
+        const response = await fetch(`${authApiUrl}/auth/customer/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.isSuccess) {
+          const errMsg = data?.message || data?.errors?.[0] || "Gagal mendaftarkan akun.";
+          throw new Error(errMsg);
+        }
+
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const resetPassword = useCallback(
+    async (identifier: string, newPassword: string, confirmPassword: string, isCustomer: boolean) => {
+      setIsLoading(true);
+      try {
+        const authApiUrl = getApiUrl("auth");
+        const endpoint = isCustomer
+          ? `${authApiUrl}/auth/customer/reset-password`
+          : `${authApiUrl}/auth/reset-password`;
+
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier, newPassword, confirmPassword }),
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.isSuccess) {
+          const errMsg = data?.message || data?.errors?.[0] || "Gagal mengganti kata sandi.";
+          throw new Error(errMsg);
+        }
+
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
   const logout = useCallback(async () => {
     try {
       const token = storage.retrieve("apiKey") || storage.retrieve("token");
@@ -385,6 +499,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     menuPermissions,
     canAccessMenu,
     canPerformAction,
+    loginCustomer,
+    registerCustomer,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
