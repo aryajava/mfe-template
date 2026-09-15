@@ -143,8 +143,8 @@ export default function Layout({ children }: LayoutProps) {
       const groupCode = (item.groupCode || "").toLowerCase();
       const fullPath = item.fullPath || item.urlPrefix || `/${code}`;
       const name =
-        MENU_LABELS[code] ||
         item.menuName ||
+        MENU_LABELS[code] ||
         code
           .split("-")
           .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1))

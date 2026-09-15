@@ -13,6 +13,7 @@ export interface User {
 
 export interface MenuPermissionItem {
   menuCode?: string;
+  menuName?: string;
   groupCode?: string;
   groupName?: string;
   urlPrefix?: string;
