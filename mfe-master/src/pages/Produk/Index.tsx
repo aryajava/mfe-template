@@ -255,7 +255,11 @@ export const ProdukIndex: React.FC = () => {
           </Tooltip>
 
           {canCreate && (
-            <Button asChild className="gap-2 bg-orange-600 hover:bg-orange-700 text-white shadow-xs">
+            <Button
+              asChild
+              size="sm"
+              className="gap-2 bg-orange-600 hover:bg-orange-700 text-white shadow-xs cursor-pointer"
+            >
               <Link to="tambah">
                 <Plus className="w-4 h-4" />
                 <span>Tambah Produk</span>
@@ -435,7 +439,7 @@ export const ProdukIndex: React.FC = () => {
                           ? 'Tidak ditemukan produk yang cocok dengan kata kunci atau filter saat ini.'
                           : 'Belum ada produk di database.'}
                       </p>
-                      {(debouncedSearch || selectedCategory !== 'Semua') && (
+                      {(debouncedSearch || selectedCategory !== 'Semua') ? (
                         <Button
                           variant="link"
                           size="sm"
@@ -443,10 +447,23 @@ export const ProdukIndex: React.FC = () => {
                             setSearchTerm('');
                             setSelectedCategory('Semua');
                           }}
-                          className="text-orange-600"
+                          className="text-orange-600 cursor-pointer"
                         >
                           Hapus filter pencarian
                         </Button>
+                      ) : (
+                        canCreate && (
+                          <Button
+                            asChild
+                            size="sm"
+                            className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-xs cursor-pointer font-medium"
+                          >
+                            <Link to="tambah">
+                              <Plus className="w-4 h-4" />
+                              <span>Tambah Produk Pertama</span>
+                            </Link>
+                          </Button>
+                        )
                       )}
                     </div>
                   </td>

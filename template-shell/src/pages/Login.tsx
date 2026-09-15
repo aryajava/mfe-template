@@ -52,7 +52,7 @@ export const Login: React.FC = () => {
     authMode === 'reset'
       ? {
         title: 'Ganti Kata Sandi',
-        subtitle: 'Buka blokir akun pengurus dan atur kata sandi baru',
+        subtitle: 'Buka blokir akun dan atur kata sandi baru',
       }
       : {
         title: 'Toko GKLaku',

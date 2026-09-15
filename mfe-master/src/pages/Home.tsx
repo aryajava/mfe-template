@@ -226,7 +226,8 @@ export const Home: React.FC = () => {
                   <Button
                     asChild
                     variant="secondary"
-                    className="w-full justify-between bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 border border-orange-200/70 font-medium text-xs transition-colors"
+                    size="sm"
+                    className="w-full justify-between bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 border border-orange-200/70 font-medium text-xs transition-colors cursor-pointer"
                   >
                     <Link to={module.path}>
                       <span>Buka Kelola Data</span>

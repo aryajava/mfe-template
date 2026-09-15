@@ -246,6 +246,7 @@ export const EkspedisiIndex: React.FC = () => {
           {canCreate && (
             <Button
               asChild
+              size="sm"
               className="gap-2 bg-orange-600 hover:bg-orange-700 text-white shadow-xs cursor-pointer"
             >
               <Link to="tambah">
@@ -415,9 +416,13 @@ export const EkspedisiIndex: React.FC = () => {
                           Reset Pencarian
                         </Button>
                       ) : canCreate ? (
-                        <Button asChild size="sm" className="bg-orange-600 hover:bg-orange-700 text-white cursor-pointer text-xs">
+                        <Button
+                          asChild
+                          size="sm"
+                          className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-xs cursor-pointer font-medium"
+                        >
                           <Link to="tambah">
-                            <Plus className="w-3.5 h-3.5 mr-1.5" />
+                            <Plus className="w-4 h-4" />
                             <span>Tambah Ekspedisi Pertama</span>
                           </Link>
                         </Button>
