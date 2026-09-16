@@ -6,7 +6,6 @@ import {
   TooltipProvider,
 } from '@template/shared';
 import MasterRoutes from './routes/masterRoutes';
-import './global.css';
 
 interface ModuleProps {
   basePath?: string;

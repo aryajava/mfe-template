@@ -260,15 +260,15 @@ export const EkspedisiIndex: React.FC = () => {
 
       {/* Toolbar Filter & Search */}
       <Card className="p-4 sm:p-5 shadow-xs border border-gray-200/90 bg-white rounded-xl">
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col md:flex-row flex-wrap lg:flex-nowrap items-stretch md:items-center gap-3">
           {/* Search box using Input */}
-          <div className="relative flex-1 min-w-0 w-full">
+          <div className="relative flex-1 min-w-[220px] w-full">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari mitra ekspedisi..."
-              className="pl-10 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
+              className="!pl-10 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
             />
             {searchTerm && (
               <button
@@ -281,14 +281,14 @@ export const EkspedisiIndex: React.FC = () => {
           </div>
 
           {/* Filter Status Dinamis */}
-          <div className="w-full sm:w-44 flex-shrink-0">
+          <div className="w-full sm:w-44 shrink-0">
             <select
               value={selectedStatus}
               onChange={(e) => {
                 setSelectedStatus(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
+              className="w-full h-10 !px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
             >
               <option value="">Semua Status</option>
               <option value="true">Aktif</option>
@@ -297,7 +297,7 @@ export const EkspedisiIndex: React.FC = () => {
           </div>
 
           {/* Sorting Dropdown */}
-          <div className="w-full sm:w-56 flex-shrink-0">
+          <div className="w-full sm:w-56 shrink-0">
             <select
               value={`${sortConfig.key}-${sortConfig.direction}`}
               onChange={(e) => {
@@ -305,7 +305,7 @@ export const EkspedisiIndex: React.FC = () => {
                 setSortConfig({ key, direction: direction as 'asc' | 'desc' });
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
+              className="w-full h-10 !px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
             >
               <option value="name-asc">Nama Ekspedisi (A - Z)</option>
               <option value="name-desc">Nama Ekspedisi (Z - A)</option>

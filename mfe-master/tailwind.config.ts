@@ -10,6 +10,10 @@ const config: Config = {
     '../template-shell/src/**/*.{ts,tsx}',
     '../template-mfe-child/src/**/*.{ts,tsx}',
     '../mfe-hallo/src/**/*.{ts,tsx}',
+    '../mfe-maintain/src/**/*.{ts,tsx}',
+    '../mfe-monitor/src/**/*.{ts,tsx}',
+    '../mfe-trx/src/**/*.{ts,tsx}',
+    '../mfe-report/src/**/*.{ts,tsx}',
   ],
   prefix: '',
   theme: {

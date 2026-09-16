@@ -4,7 +4,6 @@ import { SharedProvider, LoadingProvider, GlobalLoadingOverlay } from '@template
 import Home from './pages/Home';
 import Detail from './pages/Detail';
 import NotFound from './pages/NotFound';
-import './global.css';
 
 interface ModuleProps {
   basePath?: string;

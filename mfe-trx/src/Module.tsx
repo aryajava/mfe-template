@@ -6,7 +6,6 @@ import {
   TooltipProvider,
 } from '@template/shared';
 import TrxRoutes from './routes/trxRoutes';
-import './global.css';
 
 interface ModuleProps {
   basePath?: string;

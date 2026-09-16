@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import { SharedProvider, LoadingProvider, GlobalLoadingOverlay } from '@template/shared';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
-import './global.css';
 
 interface ModuleProps {
   basePath?: string;

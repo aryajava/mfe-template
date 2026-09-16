@@ -368,7 +368,7 @@ export const PelangganIndex: React.FC = () => {
                   placeholder="Cari email, nama, atau no. HP..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-9 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
+                  className="!pl-10 pr-9 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
                 />
                 {searchTerm && (
                   <button
@@ -391,7 +391,7 @@ export const PelangganIndex: React.FC = () => {
                   setSelectedStatus(e.target.value);
                   setPagination((prev) => ({ ...prev, page: 1 }));
                 }}
-                className="w-full h-10 px-3 text-sm bg-white hover:bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 transition-colors cursor-pointer"
+                className="w-full h-10 !px-3 text-sm bg-white hover:bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 transition-colors cursor-pointer"
               >
                 <option value="">Semua Status Akun</option>
                 <option value="true">Akun Aktif</option>
@@ -407,7 +407,7 @@ export const PelangganIndex: React.FC = () => {
                   setSelectedBlocked(e.target.value);
                   setPagination((prev) => ({ ...prev, page: 1 }));
                 }}
-                className="w-full h-10 px-3 text-sm bg-white hover:bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 transition-colors cursor-pointer"
+                className="w-full h-10 !px-3 text-sm bg-white hover:bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 transition-colors cursor-pointer"
               >
                 <option value="">Semua Status Blokir</option>
                 <option value="true">Status: Diblokir</option>
