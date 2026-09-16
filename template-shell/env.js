@@ -31,7 +31,7 @@
     API_BASE_URL: API_URLS[MODE] || API_URLS.local,
     MARQUEE: MARQUEE,
     ALLOWED_DOMAINS: ALLOWED_DOMAINS,
-    APP_NAME: "Template MFE Shell",
+    APP_NAME: "Portal GKLaku",
     VERSION: "1.0.0",
 
     getApiUrl(serviceName) {

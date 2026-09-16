@@ -8,7 +8,7 @@ interface AuthContainerProps {
 }
 
 export const AuthContainer: React.FC<AuthContainerProps> = ({
-  title = 'Toko GKLaku',
+  title = 'Portal GKLaku',
   subtitle = 'Silakan masuk ke panel pengurus toko untuk mengelola sistem',
   children,
 }) => {
@@ -43,7 +43,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
 
         {/* Footer info */}
         <div className="text-center mt-6 text-xs text-gray-400">
-          &copy; {new Date().getFullYear()} Toko GKLaku &bull; Hak Cipta Dilindungi
+          &copy; {new Date().getFullYear()} Portal GKLaku &bull; Hak Cipta Dilindungi
         </div>
       </div>
     </div>

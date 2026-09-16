@@ -55,8 +55,8 @@ export const Login: React.FC = () => {
         subtitle: 'Buka blokir akun dan atur kata sandi baru',
       }
       : {
-        title: 'Toko GKLaku',
-        subtitle: 'Login - Sistem Toko GKLaku',
+        title: 'Portal GKLaku',
+        subtitle: 'Login - Portal GKLaku',
       };
 
   return (

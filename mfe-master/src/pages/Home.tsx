@@ -201,7 +201,7 @@ export const Home: React.FC = () => {
             </span>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Pengelolaan entitas master data terpusat untuk aplikasi Toko GKLaku.
+            Pengelolaan entitas master data terpusat untuk aplikasi Portal GKLaku.
           </p>
         </div>
 

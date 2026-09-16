@@ -1,9 +1,9 @@
 #!/bin/bash
-# Template MFE - Start All Microfrontends
+# Portal GKLaku - Start All Microfrontends
 # Usage: ./start.sh
 
 echo "========================================"
-echo "  Template MFE - Starting All Services"
+echo "  Portal GKLaku - Starting All Services"
 echo "========================================"
 echo ""
 

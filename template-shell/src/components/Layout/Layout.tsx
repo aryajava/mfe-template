@@ -379,7 +379,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="h-16 flex items-center px-4 border-b border-gray-200 overflow-hidden shrink-0">
           <Link to="/dashboard" className="flex items-center gap-3 min-w-max">
             <div className="h-8 w-8 rounded-lg bg-orange-500 flex items-center justify-center shrink-0 shadow-2xs">
-              <span className="text-white font-bold text-sm">T</span>
+              <span className="text-white font-bold text-sm">P</span>
             </div>
             <span
               className={`font-bold text-base text-gray-900 whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded
@@ -387,7 +387,7 @@ export default function Layout({ children }: LayoutProps) {
                   : "opacity-0 max-w-0 -translate-x-3 pointer-events-none"
                 }`}
             >
-              Template MFE
+              Portal GKLaku
             </span>
           </Link>
         </div>

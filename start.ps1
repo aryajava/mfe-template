@@ -1,8 +1,8 @@
-# Template MFE - Start All Microfrontends
+# Portal GKLaku - Start All Microfrontends
 # Usage: .\start.ps1
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Template MFE - Starting All Services" -ForegroundColor Cyan
+Write-Host "  Portal GKLaku - Starting All Services" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
