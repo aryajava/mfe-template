@@ -545,98 +545,93 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
 
-          {/* Sisi Tengah: Pencarian Cepat Global (Command Search) */}
-          <div ref={searchContainerRef} className="hidden lg:block relative w-72 xl:w-96">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Cari rute, produk, menu..."
-                value={quickSearch}
-                onFocus={() => setIsSearchFocused(true)}
-                onChange={(e) => {
-                  setQuickSearch(e.target.value);
-                  setIsSearchFocused(true);
-                }}
-                className="w-full h-9 pl-9 pr-8 text-xs bg-gray-50/80 hover:bg-gray-50 focus:bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-800 placeholder-gray-400"
-              />
-              {quickSearch && (
-                <button
-                  type="button"
-                  onClick={() => setQuickSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+          {/* Sisi Kanan: Pencarian Cepat Global, Profil Pengguna, & Logout */}
+          <div className="flex items-center gap-3 shrink-0 ml-4">
+            {/* Pencarian Cepat Global (Fixed Width) */}
+            <div ref={searchContainerRef} className="relative w-64 sm:w-72 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Cari rute, produk, menu..."
+                  value={quickSearch}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onChange={(e) => {
+                    setQuickSearch(e.target.value);
+                    setIsSearchFocused(true);
+                  }}
+                  className="w-full h-9 pl-9 pr-8 text-xs bg-gray-50/90 hover:bg-gray-100/70 focus:bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-800 placeholder-gray-400 shadow-2xs"
+                />
+                {quickSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setQuickSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer"
+                    title="Bersihkan pencarian"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Dropdown Hasil Pencarian Cepat */}
+              {isSearchFocused && quickSearch.trim().length > 0 && (
+                <div className="absolute right-0 w-80 sm:w-96 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="p-2 border-b border-gray-50 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    Menu & Halaman Terkait
+                  </div>
+                  {searchResults.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-gray-400">
+                      Tidak ditemukan menu dengan kata kunci "{quickSearch}"
+                    </div>
+                  ) : (
+                    <div className="p-1.5 space-y-0.5 max-h-80 overflow-y-auto">
+                      {searchResults.map((item) => {
+                        const ItemIcon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              navigate(item.href);
+                              setQuickSearch("");
+                              setIsSearchFocused(false);
+                            }}
+                            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-orange-50 text-left transition-colors cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="p-1.5 rounded-lg bg-gray-100 group-hover:bg-orange-100 group-hover:text-orange-600 text-gray-600 transition-colors shrink-0">
+                                <ItemIcon className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-semibold text-gray-900 group-hover:text-orange-700 truncate">
+                                  {item.name}
+                                </div>
+                                <div className="text-[10px] text-gray-400 font-mono truncate">
+                                  {item.groupName} • {item.href}
+                                </div>
+                              </div>
+                            </div>
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-orange-600 transition-colors shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
-            {/* Dropdown Hasil Pencarian Cepat */}
-            {isSearchFocused && quickSearch.trim().length > 0 && (
-              <div className="absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-2 border-b border-gray-50 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                  Menu & Halaman Terkait
-                </div>
-                {searchResults.length === 0 ? (
-                  <div className="p-4 text-center text-xs text-gray-400">
-                    Tidak ditemukan menu dengan kata kunci "{quickSearch}"
-                  </div>
-                ) : (
-                  <div className="p-1.5 space-y-0.5">
-                    {searchResults.map((item) => {
-                      const ItemIcon = item.icon;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            navigate(item.href);
-                            setQuickSearch("");
-                            setIsSearchFocused(false);
-                          }}
-                          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-orange-50 text-left transition-colors cursor-pointer group"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div className="p-1.5 rounded-lg bg-gray-100 group-hover:bg-orange-100 group-hover:text-orange-600 text-gray-600 transition-colors">
-                              <ItemIcon className="w-3.5 h-3.5" />
-                            </div>
-                            <div>
-                              <div className="text-xs font-semibold text-gray-900 group-hover:text-orange-700">
-                                {item.name}
-                              </div>
-                              <div className="text-[10px] text-gray-400 font-mono">
-                                {item.groupName} • {item.href}
-                              </div>
-                            </div>
-                          </div>
-                          <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-orange-600 transition-colors" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Sisi Kanan: Status Koneksi Backend & Profil Pengguna */}
-          <div className="flex items-center gap-3">
-            {/* Status Backend */}
-            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-2xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>API Backend Aktif</span>
-            </div>
-
-            {/* Profil Staf Pengguna */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-gray-200/70">
-              <div className="h-8 w-8 rounded-xl bg-orange-50 border border-orange-200/60 text-orange-700 flex items-center justify-center font-bold text-xs shadow-2xs">
+            {/* Profil Staf Pengguna (Fixed Size) */}
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-gray-50/80 border border-gray-200/70 shadow-2xs shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-orange-50 border border-orange-200/60 text-orange-700 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
                 {(user?.name || "U").charAt(0).toUpperCase()}
               </div>
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-bold text-gray-900 leading-tight">
+              <div className="flex flex-col text-left min-w-[70px] max-w-[120px]">
+                <span className="text-xs font-bold text-gray-900 leading-tight truncate" title={user?.name || "Super Admin"}>
                   {user?.name || "Super Admin"}
                 </span>
-                <span className="text-[10px] font-semibold text-orange-600 tracking-wide uppercase">
+                <span className="text-[10px] font-semibold text-orange-600 tracking-wide uppercase truncate">
                   {user?.roles?.[1] || user?.roles?.[0] || "SA"}
                 </span>
               </div>
@@ -649,7 +644,7 @@ export default function Layout({ children }: LayoutProps) {
                   variant="ghost"
                   size="icon"
                   onClick={handleLogout}
-                  className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                  className="h-9 w-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer shrink-0"
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
