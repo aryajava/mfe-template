@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Search,
   X,
+  Settings,
 } from "lucide-react";
 import { ReactNode, useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -644,7 +645,7 @@ export default function Layout({ children }: LayoutProps) {
               )}
             </div>
 
-            {/* Profil Pengguna: Hanya Icon/Avatar dengan Dropdown Menu */}
+            {/* Profil Pengguna: [Icon/Foto Profil] [Nama di atas / Peran di bawah] */}
             <div ref={profileContainerRef} className="relative shrink-0">
               <button
                 type="button"
@@ -652,73 +653,103 @@ export default function Layout({ children }: LayoutProps) {
                 aria-expanded={isProfileOpen}
                 aria-haspopup="true"
                 aria-label="Menu profil pengguna"
-                className={`h-9 w-9 rounded-xl flex items-center justify-center font-bold text-xs transition-all shadow-2xs cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${
                   isProfileOpen
-                    ? "bg-orange-600 text-white ring-2 ring-orange-500/40 shadow-sm"
-                    : "bg-orange-50 hover:bg-orange-100/90 text-orange-700 border border-orange-200/80 active:scale-95"
+                    ? "bg-orange-50/80 border-orange-200/90 shadow-2xs"
+                    : "bg-gray-50/80 hover:bg-gray-100/70 border-gray-200/70 active:scale-[0.99] shadow-2xs"
                 }`}
-                title={`Profil: ${user?.name || "Pengguna"}`}
               >
-                {(user?.name || "U").charAt(0).toUpperCase()}
+                {/* Icon / Foto Profil */}
+                <div className="h-8 w-8 rounded-lg bg-orange-50 border border-orange-200/80 text-orange-700 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
+                  {(user?.name || "U").charAt(0).toUpperCase()}
+                </div>
+
+                {/* Di atas: display name / nama. Di bawah: peran / role */}
+                <div className="flex flex-col text-left min-w-[70px] max-w-[130px]">
+                  <span
+                    className="text-xs font-semibold text-gray-900 leading-tight truncate"
+                    title={user?.name || "System Administrator"}
+                  >
+                    {user?.name || "System Administrator"}
+                  </span>
+                  <span
+                    className="text-[10px] font-medium text-gray-500 leading-tight truncate uppercase tracking-wider mt-0.5"
+                    title={user?.roles?.[1] || user?.roles?.[0] || "SA"}
+                  >
+                    {user?.roles?.[1] || user?.roles?.[0] || "SA"}
+                  </span>
+                </div>
+
+                {/* Indikator Panah Dropdown */}
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-gray-400 transition-transform duration-200 shrink-0 ml-0.5 ${
+                    isProfileOpen ? "rotate-180 text-orange-600" : ""
+                  }`}
+                />
               </button>
 
-              {/* Popover Dropdown Profil */}
+              {/* Popover Dropdown Profil (Rombak Total: Compact, Minimalist, Enterprise-Grade) */}
               {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
-                  {/* Header Identitas Staf: Avatar, Nama Lengkap & Peran */}
-                  <div className="p-4 bg-gradient-to-b from-orange-50/40 via-gray-50/20 to-white border-b border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-orange-100 border border-orange-200/80 text-orange-700 flex items-center justify-center font-bold text-base shadow-2xs shrink-0">
-                        {(user?.name || "U").charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className="text-sm font-bold text-gray-900 leading-snug truncate"
-                          title={user?.name || "Super Admin"}
-                        >
-                          {user?.name || "Super Admin"}
-                        </div>
-                        {user?.email && (
-                          <div
-                            className="text-[11px] text-gray-500 truncate mt-0.5"
-                            title={user.email}
-                          >
-                            {user.email}
-                          </div>
-                        )}
-                        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-100/80 text-orange-800 border border-orange-200/60 uppercase tracking-wide">
-                            {user?.roles?.[1] || user?.roles?.[0] || "Super Admin"}
-                          </span>
-                          {user?.id && (
-                            <span className="text-[10px] text-gray-400 font-mono">
-                              ID: {user.id.slice(0, 8)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 divide-y divide-gray-100">
+                  {/* Header: Informasi Pengguna & Status */}
+                  <div className="p-3 bg-gray-50/60">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                        Akun Aktif
+                      </span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-50 text-orange-700 border border-orange-200/70 uppercase">
+                        {user?.roles?.[1] || user?.roles?.[0] || "Super Admin"}
+                      </span>
                     </div>
+                    <div className="text-xs font-bold text-gray-900 truncate mt-1">
+                      {user?.name || "System Administrator"}
+                    </div>
+                    {user?.email && (
+                      <div className="text-[11px] text-gray-500 truncate mt-0.5">
+                        {user.email}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Tombol Aksi: Keluar dari Akun */}
-                  <div className="p-2 bg-gray-50/40">
+                  {/* Menu Navigasi / Tindakan Cepat */}
+                  <div className="p-1.5 space-y-0.5">
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 rounded-lg transition-colors group"
+                    >
+                      <Home className="w-4 h-4 text-gray-400 group-hover:text-orange-600 transition-colors shrink-0" />
+                      <span>Dashboard Utama</span>
+                    </Link>
+
+                    {(canAccessMenu("pengaturan-aplikasi") || canAccessMenu("pengaturan-toko")) && (
+                      <Link
+                        to={
+                          canAccessMenu("pengaturan-aplikasi")
+                            ? "/pengaturan/pengaturan-aplikasi"
+                            : "/pengaturan/pengaturan-toko"
+                        }
+                        onClick={() => setIsProfileOpen(false)}
+                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 rounded-lg transition-colors group"
+                      >
+                        <Settings className="w-4 h-4 text-gray-400 group-hover:text-orange-600 transition-colors shrink-0" />
+                        <span>Pengaturan Sistem</span>
+                      </Link>
+                    )}
+                  </div>
+
+                  {/* Tombol Keluar Sesi */}
+                  <div className="p-1.5">
                     <button
                       type="button"
                       onClick={() => {
                         setIsProfileOpen(false);
                         handleLogout();
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100/80 transition-all cursor-pointer group"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer group text-left"
                     >
-                      <div className="h-7 w-7 rounded-lg bg-red-50 group-hover:bg-red-100 flex items-center justify-center text-red-500 group-hover:text-red-600 transition-colors shrink-0">
-                        <LogOut className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex flex-col text-left">
-                        <span>Keluar dari Akun</span>
-                        <span className="text-[10px] text-gray-400 group-hover:text-red-400 font-normal">
-                          Akhiri sesi login saat ini
-                        </span>
-                      </div>
+                      <LogOut className="w-4 h-4 text-red-500 group-hover:text-red-600 transition-colors shrink-0" />
+                      <span>Keluar dari Akun</span>
                     </button>
                   </div>
                 </div>
