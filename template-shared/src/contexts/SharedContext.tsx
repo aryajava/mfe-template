@@ -7,6 +7,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username?: string;
+  displayName?: string;
   roles: string[];
   permissions: string[];
 }

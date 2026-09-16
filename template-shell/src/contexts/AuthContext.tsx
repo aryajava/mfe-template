@@ -104,10 +104,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const resJson = await response.json();
         const profileData = resJson.data || resJson;
         const role = profileData.role || profileData.Role || "ADMIN";
+        const username = profileData.username || profileData.Username || profileData.email || profileData.Email || "";
+        const displayName = profileData.displayName || profileData.DisplayName || profileData.display || profileData.Display || username;
         const userData: User = {
           id: String(profileData.id || profileData.Id || "1"),
-          email: profileData.username || profileData.Username || "",
-          name: profileData.displayName || profileData.display || profileData.username || "User",
+          email: username,
+          username: username,
+          displayName: displayName,
+          name: displayName,
           roles: [role.toLowerCase(), role.toUpperCase()],
           permissions: role.toUpperCase() === "SA" || role.toUpperCase() === "OWNER" ? ["*"] : ["read", "write"],
         };
@@ -244,11 +248,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         storage.store("authenticated", "true");
 
         if (rawUser) {
-          const role = rawUser.role || "ADMIN";
+          const role = rawUser.role || rawUser.Role || "ADMIN";
+          const username = rawUser.username || rawUser.Username || "";
+          const displayName = rawUser.displayName || rawUser.DisplayName || rawUser.display || rawUser.Display || username;
           const userData: User = {
-            id: String(rawUser.id),
-            email: rawUser.username,
-            name: rawUser.displayName || rawUser.display || rawUser.username,
+            id: String(rawUser.id || rawUser.Id),
+            email: username,
+            username: username,
+            displayName: displayName,
+            name: displayName,
             roles: [role.toLowerCase(), role.toUpperCase()],
             permissions: role.toUpperCase() === "SA" || role.toUpperCase() === "OWNER" ? ["*"] : ["read", "write"],
           };

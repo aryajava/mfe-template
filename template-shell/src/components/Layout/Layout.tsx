@@ -95,6 +95,11 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { logout, user, canAccessMenu, menuPermissions } = useAuth();
 
+  // Ambil display name dan username yang akurat dari data user (API / DB)
+  const userDisplayName = user?.displayName || user?.name || user?.username || "Pengguna";
+  const userUsername = user?.username || user?.email || "user";
+  const userRole = user?.roles?.[1] || user?.roles?.[0] || "SA";
+
   const [sidebarExpanded, setSidebarExpanded] = useState(() => {
     const saved = storage.retrieve("sidebarExpanded");
     return saved !== null ? JSON.parse(saved) : true;
@@ -653,62 +658,47 @@ export default function Layout({ children }: LayoutProps) {
                 aria-expanded={isProfileOpen}
                 aria-haspopup="true"
                 aria-label="Menu profil pengguna"
-                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${
-                  isProfileOpen
-                    ? "bg-orange-50/80 border-orange-200/90 shadow-2xs"
-                    : "bg-gray-50/80 hover:bg-gray-100/70 border-gray-200/70 active:scale-[0.99] shadow-2xs"
-                }`}
+                className="w-44 h-10 flex items-center gap-2.5 px-2 py-1 rounded-xl bg-transparent hover:bg-gray-100/70 active:bg-gray-200/50 transition-colors cursor-pointer select-none focus:outline-none"
               >
                 {/* Icon / Foto Profil */}
                 <div className="h-8 w-8 rounded-lg bg-orange-50 border border-orange-200/80 text-orange-700 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
-                  {(user?.name || "U").charAt(0).toUpperCase()}
+                  {userDisplayName.charAt(0).toUpperCase()}
                 </div>
 
                 {/* Di atas: display name / nama. Di bawah: peran / role */}
-                <div className="flex flex-col text-left min-w-[70px] max-w-[130px]">
+                <div className="flex flex-col text-left min-w-0 flex-1">
                   <span
-                    className="text-xs font-semibold text-gray-900 leading-tight truncate"
-                    title={user?.name || "System Administrator"}
+                    className="text-xs font-semibold text-gray-900 leading-tight truncate block"
+                    title={userDisplayName}
                   >
-                    {user?.name || "System Administrator"}
+                    {userDisplayName}
                   </span>
                   <span
-                    className="text-[10px] font-medium text-gray-500 leading-tight truncate uppercase tracking-wider mt-0.5"
-                    title={user?.roles?.[1] || user?.roles?.[0] || "SA"}
+                    className="text-[10px] font-medium text-gray-500 leading-tight truncate block uppercase tracking-wider mt-0.5"
+                    title={userRole}
                   >
-                    {user?.roles?.[1] || user?.roles?.[0] || "SA"}
+                    {userRole}
                   </span>
                 </div>
-
-                {/* Indikator Panah Dropdown */}
-                <ChevronDown
-                  className={`h-3.5 w-3.5 text-gray-400 transition-transform duration-200 shrink-0 ml-0.5 ${
-                    isProfileOpen ? "rotate-180 text-orange-600" : ""
-                  }`}
-                />
               </button>
 
               {/* Popover Dropdown Profil (Rombak Total: Compact, Minimalist, Enterprise-Grade) */}
               {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 divide-y divide-gray-100">
-                  {/* Header: Informasi Pengguna & Status */}
-                  <div className="p-3 bg-gray-50/60">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                        Akun Aktif
-                      </span>
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-50 text-orange-700 border border-orange-200/70 uppercase">
-                        {user?.roles?.[1] || user?.roles?.[0] || "Super Admin"}
-                      </span>
+                <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 divide-y divide-gray-100">
+                  {/* Header: Display Name di atas, Username di bawah (Bukan Role) */}
+                  <div className="p-3 bg-gray-50/50 text-left">
+                    <div
+                      className="text-xs font-bold text-gray-900 truncate"
+                      title={userDisplayName}
+                    >
+                      {userDisplayName}
                     </div>
-                    <div className="text-xs font-bold text-gray-900 truncate mt-1">
-                      {user?.name || "System Administrator"}
+                    <div
+                      className="text-[11px] text-gray-500 truncate mt-0.5 font-mono"
+                      title={userUsername}
+                    >
+                      @{userUsername}
                     </div>
-                    {user?.email && (
-                      <div className="text-[11px] text-gray-500 truncate mt-0.5">
-                        {user.email}
-                      </div>
-                    )}
                   </div>
 
                   {/* Menu Navigasi / Tindakan Cepat */}
