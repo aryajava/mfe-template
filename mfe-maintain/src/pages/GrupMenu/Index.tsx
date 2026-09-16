@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
 import {
   Layers,
   Search,
@@ -16,24 +15,34 @@ import {
   FolderPlus,
   ShieldAlert,
   Boxes,
+  ArrowUpDown,
 } from 'lucide-react';
 import {
   Button,
   Input,
+  SearchNotification,
   Card,
-  CardContent,
   Tooltip,
   TooltipTrigger,
   TooltipContent,
   LoadingSpinner,
+  DataTable,
+  type DataTableColumn,
   useAuth,
   useEventBus,
   useEventSubscription,
   MFE_EVENTS,
   resolveLucideIcon,
+  cn,
+  type PaginationConfig,
+  type SortConfig,
 } from '@template/shared';
 import { menuGroupApi } from '../../services/menuGroupApi';
-import { MenuGroupItem, CreateMenuGroupInput, UpdateMenuGroupInput } from '../../types/menuGroup';
+import {
+  MenuGroupItem,
+  CreateMenuGroupInput,
+  UpdateMenuGroupInput,
+} from '../../types/menuGroup';
 
 export const GrupMenuIndex: React.FC = () => {
   const { canPerformAction } = useAuth();
@@ -48,14 +57,25 @@ export const GrupMenuIndex: React.FC = () => {
   const canToggleStatus =
     canPerformAction('master-grup-menu', 'status') || canPerformAction('grup-menu', 'status');
 
+  // Filter & Pagination States
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<string>(''); // '' = Semua, 'true' = Aktif, 'false' = Nonaktif
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: 'sortOrder',
+    direction: 'asc',
+  });
+  const [pagination, setPagination] = useState<PaginationConfig>({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [totalPages, setTotalPages] = useState(1);
+
   // State Data
   const [groups, setGroups] = useState<MenuGroupItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Modal Form State (Tambah / Ubah)
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -82,19 +102,47 @@ export const GrupMenuIndex: React.FC = () => {
   const [deletingGroup, setDeletingGroup] = useState<MenuGroupItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch Data
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch Data Server-Side Paged
   const loadGroups = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await menuGroupApi.getAll();
-      setGroups(data || []);
+      const res = await menuGroupApi.getPaged({
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        search: debouncedSearch.trim() || undefined,
+        active: selectedStatus !== '' ? selectedStatus === 'true' : undefined,
+        sortBy: sortConfig.key,
+        sortOrder: sortConfig.direction,
+      });
+
+      setGroups(res.items || []);
+      const totalCount = res.total ?? res.totalItems ?? 0;
+      setPagination((prev) => ({ ...prev, total: totalCount }));
+      setTotalPages(res.totalPages || Math.ceil(totalCount / pagination.pageSize) || 1);
     } catch (err: any) {
-      setError(err?.message || 'Gagal memuat daftar grup menu.');
+      console.error('Gagal memuat daftar grup menu:', err);
+      setError(err?.message || 'Gagal memuat daftar grup menu dari server.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [
+    pagination.page,
+    pagination.pageSize,
+    debouncedSearch,
+    selectedStatus,
+    sortConfig.key,
+    sortConfig.direction,
+  ]);
 
   useEffect(() => {
     loadGroups();
@@ -107,24 +155,14 @@ export const GrupMenuIndex: React.FC = () => {
     }
   });
 
-  // Filtering Logic
-  const filteredGroups = useMemo(() => {
-    return groups.filter((g) => {
-      const matchSearch =
-        g.groupName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        g.groupCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        g.urlPrefix.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchStatus =
-        statusFilter === 'all'
-          ? true
-          : statusFilter === 'active'
-          ? g.isActive
-          : !g.isActive;
-
-      return matchSearch && matchStatus;
-    });
-  }, [groups, searchTerm, statusFilter]);
+  const toggleSort = (columnKey: string) => {
+    setSortConfig((prev) => ({
+      key: columnKey,
+      direction:
+        prev.key === columnKey && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
 
   // Handler Buka Modal Tambah
   const handleOpenCreateModal = () => {
@@ -134,7 +172,7 @@ export const GrupMenuIndex: React.FC = () => {
       groupName: '',
       urlPrefix: '',
       mfeKey: '',
-      sortOrder: (groups.length + 1) * 10,
+      sortOrder: (pagination.total + 1) * 10,
       icon: 'Layers',
     });
     setFormErrors({});
@@ -302,6 +340,166 @@ export const GrupMenuIndex: React.FC = () => {
     }
   };
 
+  const columns = useMemo<DataTableColumn<MenuGroupItem>[]>(
+    () => [
+      {
+        key: 'no',
+        label: 'No',
+        align: 'center',
+        width: 'w-14',
+        className: 'text-xs text-slate-500 font-mono',
+        render: (_, __, index) => (pagination.page - 1) * pagination.pageSize + index + 1,
+      },
+      {
+        key: 'sortOrder',
+        label: 'Urutan',
+        sortable: true,
+        align: 'center',
+        width: 'w-20',
+        className: 'font-mono text-slate-600',
+      },
+      {
+        key: 'groupName',
+        label: 'Nama Grup',
+        sortable: true,
+        render: (_, row) => (
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+              {React.createElement(resolveLucideIcon(row.icon, Layers), { className: 'w-4 h-4' })}
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900">{row.groupName}</div>
+              {row.icon && (
+                <div className="text-[10px] text-slate-400 font-mono">
+                  icon: {row.icon}
+                </div>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'groupCode',
+        label: 'Kode Grup',
+        sortable: true,
+        className: 'font-mono text-slate-700 font-medium',
+      },
+      {
+        key: 'urlPrefix',
+        label: 'Prefix URL',
+        className: 'font-mono text-slate-600',
+        render: (value) => value || '-',
+      },
+      {
+        key: 'mfeKey',
+        label: 'Micro Frontend',
+        render: (value) =>
+          value ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-medium bg-orange-50 text-orange-700 border border-orange-200">
+              <Boxes className="h-3 w-3 text-orange-500" />
+              <span>{value}</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+              Belum Terhubung
+            </span>
+          ),
+      },
+      {
+        key: 'menuCount',
+        label: 'Menu',
+        align: 'center',
+        render: (value) => (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700">
+            {value} menu
+          </span>
+        ),
+      },
+      {
+        key: 'isActive',
+        label: 'Status',
+        sortable: true,
+        align: 'center',
+        render: (value) =>
+          value ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <CheckCircle2 className="h-3 w-3" />
+              <span>Aktif</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+              <XCircle className="h-3 w-3" />
+              <span>Nonaktif</span>
+            </span>
+          ),
+      },
+      {
+        key: 'actions',
+        label: 'Aksi',
+        align: 'center',
+        width: 'w-28',
+        render: (_, row) => (
+          <div className="flex items-center justify-center gap-1">
+            {canToggleStatus && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleToggleStatus(row)}
+                    className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800"
+                  >
+                    {row.isActive ? (
+                      <ToggleRight className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <ToggleLeft className="h-4 w-4 text-slate-400" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {row.isActive ? 'Nonaktifkan grup menu' : 'Aktifkan grup menu'}
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {canUpdate && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenEditModal(row)}
+                    className="h-7 w-7 p-0 text-slate-500 hover:text-orange-600"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Ubah grup menu</TooltipContent>
+              </Tooltip>
+            )}
+
+            {canDelete && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeletingGroup(row)}
+                    className="h-7 w-7 p-0 text-slate-500 hover:text-rose-600"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Hapus grup menu</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [pagination.page, pagination.pageSize, canToggleStatus, canUpdate, canDelete]
+  );
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -317,7 +515,7 @@ export const GrupMenuIndex: React.FC = () => {
                   Master Grup Menu
                 </h1>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 tabular-nums">
-                  {groups.length} Grup
+                  {pagination.total} Grup
                 </span>
               </div>
               <p className="text-sm text-gray-500 mt-0.5">
@@ -327,26 +525,32 @@ export const GrupMenuIndex: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadGroups}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer h-9 px-3"
-          >
-            <RotateCcw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Segarkan</span>
-          </Button>
+        <div className="flex items-center gap-2.5 self-start sm:self-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadGroups()}
+                className="gap-1.5 cursor-pointer text-xs text-slate-600 h-9 px-3"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 text-gray-500 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>Muat Ulang</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Ambil data terbaru dari API backend</p>
+            </TooltipContent>
+          </Tooltip>
 
           {canCreate && (
             <Button
               variant="default"
               size="sm"
               onClick={handleOpenCreateModal}
-              className="flex items-center gap-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white cursor-pointer shadow-xs h-9 px-3.5"
+              className="gap-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white cursor-pointer shadow-xs h-9 px-3.5"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="w-4 h-4" />
               <span>Tambah Grup Menu</span>
             </Button>
           )}
@@ -355,208 +559,105 @@ export const GrupMenuIndex: React.FC = () => {
 
       {/* Error Alert */}
       {error && (
-        <div className="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
-            <span>{error}</span>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-sm text-red-800">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-semibold text-red-900">Gagal terhubung ke API backend</h4>
+            <p className="text-xs text-red-700 mt-0.5">{error}</p>
           </div>
-          <Button variant="outline" size="sm" onClick={loadGroups} className="text-xs">
+          <Button variant="destructive" size="sm" onClick={() => loadGroups()}>
             Coba Lagi
           </Button>
         </div>
       )}
 
-      {/* Filter & Controls Card */}
-      <Card className="border-slate-200 shadow-xs">
-        <div className="p-4 flex flex-col md:flex-row items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="relative w-full md:w-80">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* Filter & Toolbar Card */}
+      <Card className="p-4 sm:p-5 shadow-xs border border-gray-200/90 bg-white rounded-xl">
+        <div className="flex flex-col md:flex-row flex-wrap lg:flex-nowrap items-stretch md:items-center gap-3">
+          {/* Search Box */}
+          <div className="relative flex-1 min-w-[220px] w-full">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
             <Input
-              type="text"
-              placeholder="Cari kode, nama, atau url prefix..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 text-xs"
+              placeholder="Cari kode, nama, atau url prefix..."
+              className="!pl-10 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <span className="text-xs text-slate-500 whitespace-nowrap font-medium">Status:</span>
+          {/* Filter Status Dinamis */}
+          <div className="w-full sm:w-44 shrink-0">
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
               aria-label="Filter status grup menu"
-              className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              className="w-full h-10 !px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
             >
-              <option value="all">Semua Status</option>
-              <option value="active">Aktif Saja</option>
-              <option value="inactive">Nonaktif Saja</option>
+              <option value="">Semua Status</option>
+              <option value="true">Aktif</option>
+              <option value="false">Nonaktif</option>
+            </select>
+          </div>
+
+          {/* Sorting Dropdown */}
+          <div className="w-full sm:w-52 shrink-0">
+            <select
+              value={`${sortConfig.key}-${sortConfig.direction}`}
+              onChange={(e) => {
+                const [key, direction] = e.target.value.split('-');
+                setSortConfig({ key, direction: direction as 'asc' | 'desc' });
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+              aria-label="Urutkan grup menu"
+              className="w-full h-10 !px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
+            >
+              <option value="sortOrder-asc">Urutan (Kecil - Besar)</option>
+              <option value="sortOrder-desc">Urutan (Besar - Kecil)</option>
+              <option value="groupName-asc">Nama Grup (A - Z)</option>
+              <option value="groupName-desc">Nama Grup (Z - A)</option>
+              <option value="groupCode-asc">Kode Grup (A - Z)</option>
+              <option value="groupCode-desc">Kode Grup (Z - A)</option>
+              <option value="createdAt-desc">Terbaru Dibuat</option>
+              <option value="createdAt-asc">Terlama Dibuat</option>
             </select>
           </div>
         </div>
-      </Card>
 
-      {/* Table Card */}
-      <Card className="border-slate-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 font-semibold">
-                <th className="py-3 px-4 w-16 text-center">Urutan</th>
-                <th className="py-3 px-4">Nama Grup</th>
-                <th className="py-3 px-4">Kode Grup</th>
-                <th className="py-3 px-4">URL Prefix</th>
-                <th className="py-3 px-4">MFE Key</th>
-                <th className="py-3 px-4 text-center">Jumlah Menu</th>
-                <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-4 text-center w-36">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
-                      <LoadingSpinner size="md" />
-                      <p className="text-xs">Memuat daftar grup menu...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredGroups.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center text-slate-400">
-                    <p className="text-sm font-medium">Tidak ada grup menu yang cocok</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Coba ubah kata kunci pencarian atau filter status
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                filteredGroups.map((g) => (
-                  <tr
-                    key={g.id}
-                    className="hover:bg-slate-50/60 transition-colors duration-150"
-                  >
-                    <td className="py-3 px-4 text-center font-mono font-medium text-slate-500">
-                      {g.sortOrder}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                          {React.createElement(resolveLucideIcon(g.icon, Layers), { className: 'w-4 h-4' })}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-slate-900">{g.groupName}</div>
-                          {g.icon && (
-                            <div className="text-[10px] text-slate-400 font-mono">
-                              icon: {g.icon}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-mono text-slate-700 font-medium">
-                      {g.groupCode}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-slate-600">
-                      {g.urlPrefix || '-'}
-                    </td>
-                    <td className="py-3 px-4">
-                      {g.mfeKey ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          <Boxes className="h-3 w-3 text-indigo-500" />
-                          <span>{g.mfeKey}</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                          Belum Terhubung
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700">
-                        {g.menuCount} menu
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {g.isActive ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="h-3 w-3" />
-                          <span>Aktif</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                          <XCircle className="h-3 w-3" />
-                          <span>Nonaktif</span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {canToggleStatus && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleToggleStatus(g)}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800"
-                              >
-                                {g.isActive ? (
-                                  <ToggleRight className="h-4 w-4 text-emerald-600" />
-                                ) : (
-                                  <ToggleLeft className="h-4 w-4 text-slate-400" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {g.isActive ? 'Nonaktifkan grup menu' : 'Aktifkan grup menu'}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {canUpdate && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenEditModal(g)}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Ubah grup menu</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {canDelete && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeletingGroup(g)}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-rose-600"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Hapus grup menu</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* Notifikasi Standar Pencarian & Filter */}
+        <div className="mt-3 pt-2.5 border-t border-gray-100">
+          <SearchNotification
+            total={pagination.total}
+            itemLabel="grup menu"
+            search={debouncedSearch}
+            category={selectedStatus === 'true' ? 'Aktif' : selectedStatus === 'false' ? 'Nonaktif' : undefined}
+            sortKey={`${sortConfig.key}-${sortConfig.direction}`}
+          />
         </div>
       </Card>
+
+      {/* Data Table */}
+      <DataTable
+        columns={columns}
+        data={groups}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        sortConfig={sortConfig}
+        onSortChange={(newSort) => {
+          setSortConfig(newSort);
+          setPagination((prev) => ({ ...prev, page: 1 }));
+        }}
+        isLoading={isLoading}
+        itemLabel="grup menu"
+        emptyMessage="Tidak ada grup menu ditemukan"
+        emptyDescription={
+          searchTerm || selectedStatus
+            ? 'Tidak ada data grup menu yang cocok dengan kata kunci atau filter status.'
+            : 'Belum ada grup menu yang terdaftar di sistem.'
+        }
+      />
 
       {/* Modal Tambah / Ubah */}
       {isFormModalOpen && typeof document !== 'undefined' && createPortal(
@@ -715,7 +816,7 @@ export const GrupMenuIndex: React.FC = () => {
                     </label>
                     <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
                       <span>Preview:</span>
-                      {React.createElement(resolveLucideIcon(formData.icon, Layers), { className: 'w-3.5 h-3.5 text-indigo-600' })}
+                      {React.createElement(resolveLucideIcon(formData.icon, Layers), { className: 'w-3.5 h-3.5 text-orange-600' })}
                     </div>
                   </div>
                   <Input

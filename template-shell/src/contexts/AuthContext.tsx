@@ -106,6 +106,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const role = profileData.role || profileData.Role || "ADMIN";
         const username = profileData.username || profileData.Username || profileData.email || profileData.Email || "";
         const displayName = profileData.displayName || profileData.DisplayName || profileData.display || profileData.Display || username;
+        const isCustomer = role.toUpperCase() === "CUSTOMER";
+        const isSaOrOwner = role.toUpperCase() === "SA" || role.toUpperCase() === "OWNER";
         const userData: User = {
           id: String(profileData.id || profileData.Id || "1"),
           email: username,
@@ -113,7 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           displayName: displayName,
           name: displayName,
           roles: [role.toLowerCase(), role.toUpperCase()],
-          permissions: role.toUpperCase() === "SA" || role.toUpperCase() === "OWNER" ? ["*"] : ["read", "write"],
+          permissions: isSaOrOwner ? ["*"] : isCustomer ? ["read", "customer"] : ["read", "write"],
         };
         setUser(userData);
         storage.store("user", JSON.stringify(userData));

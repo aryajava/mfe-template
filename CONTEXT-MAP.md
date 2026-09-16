@@ -38,3 +38,8 @@ An abstract identifier assigned to a `Menu Group` by the backend to map it to an
 **Menu Icon Identifier**:
 A canonical Lucide icon identifier string (e.g. `Package`, `ShoppingBag`, `Database`, `Settings`) stored in `MASTER_MENU.ICON` and `MASTER_MENU_GROUP.ICON`, delivered via `/role-menus/my-permissions`, and resolved dynamically by the frontend shell with fallback to `Box` (menu item) or `Layers` (menu group).
 _Avoid_: Material icon, material glyph, icon asset path.
+
+**DataTable**:
+The standardized, deep tabular UI module provided by `template-shared` encapsulating server-side pagination math, sortable headers, responsive container, loading spinners, empty states, and footer navigation behind declarative column configurations with cell and row render escape hatches.
+_Avoid_: Table wrapper, grid container, raw table markup.
+

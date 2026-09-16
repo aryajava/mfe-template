@@ -62,7 +62,10 @@ export const discountApi = {
       query.set('OnlyMine', params.onlyMine.toString());
     }
     if (params.sortBy) query.set('SortBy', params.sortBy);
-    if (params.sortDirection) query.set('SortDirection', params.sortDirection);
+    if (params.sortDirection) {
+      query.set('SortDirection', params.sortDirection);
+      query.set('SortOrder', params.sortDirection);
+    }
 
     const res = await fetch(`${API_BASE_URL}/api/discount-approvals?${query.toString()}`, {
       method: 'GET',

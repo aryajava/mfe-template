@@ -50,6 +50,7 @@ export interface PagedMenuResult {
   items: MenuItem[];
   page: number;
   pageSize: number;
-  totalItems: number;
+  total?: number;
+  totalItems?: number;
   totalPages: number;
 }

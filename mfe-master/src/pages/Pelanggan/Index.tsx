@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
@@ -29,6 +29,8 @@ import {
   TooltipTrigger,
   TooltipContent,
   LoadingSpinner,
+  DataTable,
+  type DataTableColumn,
   useLoading,
   useAuth,
   useEventBus,
@@ -311,6 +313,196 @@ export const PelangganIndex: React.FC = () => {
 
   const hasActiveFilters = Boolean(searchTerm || selectedStatus !== '' || selectedBlocked !== '');
 
+  const columns = useMemo<DataTableColumn<CustomerItem>[]>(
+    () => [
+      {
+        key: 'no',
+        label: 'No',
+        align: 'center',
+        width: 'w-14',
+        className: 'text-center text-xs text-gray-500 font-mono tabular-nums',
+        render: (_, __, idx) => (pagination.page - 1) * pagination.pageSize + idx + 1,
+      },
+      {
+        key: 'name',
+        label: 'Pelanggan',
+        sortable: true,
+        render: (_, c) => {
+          const initialChar = (c.name || c.email || 'P').charAt(0).toUpperCase();
+          return (
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-orange-50 border border-orange-200/60 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0">
+                {initialChar}
+              </div>
+              <div>
+                <div className="text-gray-900 font-semibold">{c.name || 'Pelanggan Toko'}</div>
+                <div className="text-xs text-gray-400 font-mono tabular-nums">ID: #{c.id}</div>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'email',
+        label: 'Email Akun',
+        sortable: true,
+        render: (email) => (
+          <div className="text-gray-800 font-medium text-xs font-mono">{email}</div>
+        ),
+      },
+      {
+        key: 'phone',
+        label: 'No. HP',
+        className: 'font-mono text-xs tabular-nums text-gray-600',
+        render: (phone) => phone || '-',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        align: 'center',
+        render: (_, c) => (
+          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+            {c.isBlocked && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                <ShieldAlert className="w-3 h-3 text-red-600" />
+                <span>Diblokir</span>
+              </span>
+            )}
+            {c.isActive ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span>Aktif</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                <XCircle className="w-3 h-3 text-gray-500" />
+                <span>Nonaktif</span>
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: 'createdAt',
+        label: 'Terdaftar',
+        sortable: true,
+        align: 'center',
+        className: 'text-xs text-gray-500 font-mono tabular-nums',
+        render: (val) => formatDate(val),
+      },
+      {
+        key: 'actions',
+        label: 'Aksi',
+        align: 'center',
+        width: 'w-36',
+        render: (_, c) =>
+          canUpdate || canDelete ? (
+            <div className="flex items-center justify-center gap-1">
+              {/* Tombol Blokir / Buka Blokir */}
+              {canUpdate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {c.isBlocked ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setUnblockModalTarget(c)}
+                        className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+                      >
+                        <Unlock className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setBlockModalTarget(c)}
+                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                      >
+                        <Lock className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{c.isBlocked ? 'Buka Blokir' : 'Blokir Pelanggan'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Tombol Reset Password */}
+              {canUpdate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setResetModalTarget(c);
+                        setNewPassword('');
+                        setShowPassword(false);
+                      }}
+                      className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Reset Kata Sandi</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Tombol Toggle Status Aktif / Nonaktif */}
+              {(canDelete || canUpdate) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setActiveModalTarget(c)}
+                      className="h-8 w-8 text-gray-500 hover:text-gray-800 hover:bg-gray-100 cursor-pointer"
+                    >
+                      {c.isActive ? (
+                        <UserX className="w-4 h-4" />
+                      ) : (
+                        <UserCheck className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{c.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Tombol Lepas Sesi */}
+              {canUpdate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setReleaseModalTarget(c)}
+                      className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Lepas Sesi Aktif</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 font-medium select-none" title="Hanya Baca">
+              -
+            </span>
+          ),
+      },
+    ],
+    [pagination.page, pagination.pageSize, canUpdate, canDelete]
+  );
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -451,296 +643,27 @@ export const PelangganIndex: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Main Table Card */}
-      <Card className="border border-gray-200/90 bg-white shadow-xs rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50/90 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider select-none">
-              <tr>
-                <th className="py-3.5 px-4 w-14 text-center">No</th>
-                <th
-                  onClick={() => handleSort('name')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Pelanggan</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('email')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Email Akun</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4">No. HP</th>
-                <th className="py-3.5 px-4 text-center">Status</th>
-                <th
-                  onClick={() => handleSort('createdAt')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors text-center"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>Terdaftar</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 text-center w-36">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <LoadingSpinner size="md" />
-                      <p className="text-xs text-gray-500">Memuat data pelanggan...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : errorMessage ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center">
-                    <div className="flex flex-col items-center justify-center text-red-500 gap-2">
-                      <AlertCircle className="w-8 h-8" />
-                      <p className="font-medium text-sm">{errorMessage}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchCustomers}
-                        className="mt-2 text-xs cursor-pointer"
-                      >
-                        Coba Lagi
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ) : customers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center text-gray-400 gap-2">
-                      <Users className="w-10 h-10 text-gray-300 stroke-[1.5]" />
-                      <p className="text-sm font-medium text-gray-700">Tidak ada pelanggan ditemukan</p>
-                      <p className="text-xs text-gray-500 max-w-sm">
-                        {hasActiveFilters
-                          ? 'Coba sesuaikan kata kunci pencarian atau bersihkan filter yang aktif.'
-                          : 'Belum ada data pelanggan yang terdaftar pada sistem toko.'}
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                customers.map((c, idx) => {
-                  const rowNumber = (pagination.page - 1) * pagination.pageSize + idx + 1;
-                  const initialChar = (c.name || c.email || 'P').charAt(0).toUpperCase();
-
-                  return (
-                    <tr
-                      key={c.id}
-                      className={cn(
-                        'hover:bg-gray-50/80 transition-colors',
-                        c.isBlocked && 'bg-red-50/20'
-                      )}
-                    >
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono tabular-nums">
-                        {rowNumber}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-orange-50 border border-orange-200/60 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0">
-                            {initialChar}
-                          </div>
-                          <div>
-                            <div className="text-gray-900 font-semibold">{c.name || 'Pelanggan Toko'}</div>
-                            <div className="text-xs text-gray-400 font-mono tabular-nums">ID: #{c.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="text-gray-800 font-medium text-xs font-mono">{c.email}</div>
-                      </td>
-                      <td className="py-3.5 px-4 text-gray-600 font-mono text-xs tabular-nums">
-                        {c.phone || '-'}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          {c.isBlocked && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-                              <ShieldAlert className="w-3 h-3 text-red-600" />
-                              <span>Diblokir</span>
-                            </span>
-                          )}
-                          {c.isActive ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Aktif</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-                              <XCircle className="w-3 h-3 text-gray-500" />
-                              <span>Nonaktif</span>
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono tabular-nums">
-                        {formatDate(c.createdAt)}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        {canUpdate || canDelete ? (
-                          <div className="flex items-center justify-center gap-1">
-                            {/* Tombol Blokir / Buka Blokir */}
-                            {canUpdate && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  {c.isBlocked ? (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setUnblockModalTarget(c)}
-                                      className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer"
-                                    >
-                                      <Unlock className="w-4 h-4" />
-                                    </Button>
-                                  ) : (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setBlockModalTarget(c)}
-                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                                    >
-                                      <Lock className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{c.isBlocked ? 'Buka Blokir' : 'Blokir Pelanggan'}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Tombol Reset Password */}
-                            {canUpdate && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      setResetModalTarget(c);
-                                      setNewPassword('');
-                                      setShowPassword(false);
-                                    }}
-                                    className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
-                                  >
-                                    <KeyRound className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Reset Kata Sandi</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Tombol Toggle Status Aktif / Nonaktif */}
-                            {(canDelete || canUpdate) && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setActiveModalTarget(c)}
-                                    className="h-8 w-8 text-gray-500 hover:text-gray-800 hover:bg-gray-100 cursor-pointer"
-                                  >
-                                    {c.isActive ? (
-                                      <UserX className="w-4 h-4" />
-                                    ) : (
-                                      <UserCheck className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{c.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Tombol Lepas Sesi */}
-                            {canUpdate && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setReleaseModalTarget(c)}
-                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
-                                  >
-                                    <LogOut className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Lepas Sesi Aktif</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400 font-medium select-none" title="Hanya Baca">
-                            -
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        {!isLoading && !errorMessage && customers.length > 0 && (
-          <div className="py-3.5 px-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-            <div>
-              Menampilkan{' '}
-              <span className="font-semibold text-gray-900 tabular-nums">
-                {(pagination.page - 1) * pagination.pageSize + 1}
-              </span>{' '}
-              sampai{' '}
-              <span className="font-semibold text-gray-900 tabular-nums">
-                {Math.min(pagination.page * pagination.pageSize, pagination.total)}
-              </span>{' '}
-              dari <span className="font-semibold text-gray-900 tabular-nums">{pagination.total}</span> data
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                disabled={pagination.page <= 1}
-                className="h-8 px-2.5 text-xs cursor-pointer disabled:opacity-40"
-              >
-                Sebelumnya
-              </Button>
-              <div className="px-2 font-medium text-gray-700 tabular-nums">
-                Halaman {pagination.page} dari {totalPages}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                disabled={pagination.page >= totalPages}
-                className="h-8 px-2.5 text-xs cursor-pointer disabled:opacity-40"
-              >
-                Selanjutnya
-              </Button>
-            </div>
-          </div>
-        )}
-      </Card>
+      {/* Data Table */}
+      <DataTable
+        columns={columns}
+        data={customers}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        sortConfig={sortConfig}
+        onSortChange={(newSort) => {
+          setSortConfig(newSort);
+          setPagination((prev) => ({ ...prev, page: 1 }));
+        }}
+        isLoading={isLoading}
+        itemLabel="pelanggan"
+        emptyMessage="Tidak ada pelanggan ditemukan"
+        emptyDescription={
+          hasActiveFilters
+            ? 'Coba sesuaikan kata kunci pencarian atau bersihkan filter yang aktif.'
+            : 'Belum ada data pelanggan yang terdaftar pada sistem toko.'
+        }
+        rowClassName={(c) => (c.isBlocked ? 'bg-red-50/20' : '')}
+      />
 
       {/* Modal: Blokir Pelanggan */}
       {blockModalTarget && typeof document !== 'undefined' && createPortal(

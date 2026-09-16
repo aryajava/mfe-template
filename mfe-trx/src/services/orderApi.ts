@@ -59,7 +59,10 @@ export const orderApi = {
       query.set('Status', params.status);
     }
     if (params.sortBy) query.set('SortBy', params.sortBy);
-    if (params.sortDirection) query.set('SortDirection', params.sortDirection);
+    if (params.sortDirection) {
+      query.set('SortDirection', params.sortDirection);
+      query.set('SortOrder', params.sortDirection);
+    }
 
     const res = await fetch(`${API_BASE_URL}/api/orders/paged?${query.toString()}`, {
       method: 'GET',

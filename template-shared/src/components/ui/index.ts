@@ -18,3 +18,12 @@ export {
 // Re-export sonner toast from custom styled wrapper
 export { sonnerToast, SonnerToaster, type ToasterProps } from './sonner';
 
+// Re-export DataTable and TablePagination
+export {
+  DataTable,
+  TablePagination,
+  type DataTableColumn,
+  type DataTableProps,
+  type TablePaginationProps,
+} from './data-table';
+

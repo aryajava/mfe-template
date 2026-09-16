@@ -46,6 +46,7 @@ export interface PagedMenuGroupResult {
   items: MenuGroupItem[];
   page: number;
   pageSize: number;
-  totalItems: number;
+  total?: number;
+  totalItems?: number;
   totalPages: number;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -32,6 +32,8 @@ import {
   TooltipTrigger,
   TooltipContent,
   LoadingSpinner,
+  DataTable,
+  type DataTableColumn,
   useLoading,
   useAuth,
   useEventBus,
@@ -320,6 +322,210 @@ export const UserIndex: React.FC = () => {
 
   const hasActiveFilters = Boolean(searchTerm || selectedRole || selectedStatus !== '');
 
+  const columns = useMemo<DataTableColumn<UserItem>[]>(
+    () => [
+      {
+        key: 'no',
+        label: 'No',
+        align: 'center',
+        width: 'w-14',
+        className: 'text-center text-xs text-gray-500 font-mono tabular-nums',
+        render: (_, __, idx) => (pagination.page - 1) * pagination.pageSize + idx + 1,
+      },
+      {
+        key: 'username',
+        label: 'Pengguna',
+        sortable: true,
+        render: (_, u) => {
+          const initialChar = (u.displayName || u.username || 'U').charAt(0).toUpperCase();
+          return (
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-orange-50 border border-orange-200/60 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0">
+                {initialChar}
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900 font-mono text-xs">
+                  {u.username}
+                </div>
+                <div className="text-[11px] text-gray-400 font-mono tabular-nums">ID: #{u.id}</div>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'displayName',
+        label: 'Nama Tampilan',
+        sortable: true,
+        render: (name) => (
+          <div className="text-gray-900 font-medium">{name || '-'}</div>
+        ),
+      },
+      {
+        key: 'role',
+        label: 'Peran Akses',
+        sortable: true,
+        align: 'center',
+        render: (role) => renderRoleBadge(role),
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        align: 'center',
+        render: (_, u) => (
+          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+            {u.isBlocked && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                <ShieldAlert className="w-3 h-3 text-red-600" />
+                <span>Diblokir</span>
+              </span>
+            )}
+            {u.isActive ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span>Aktif</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                <XCircle className="w-3 h-3 text-gray-500" />
+                <span>Nonaktif</span>
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: 'lastLoginAt',
+        label: 'Terakhir Login',
+        sortable: true,
+        align: 'center',
+        className: 'text-xs text-gray-500 font-mono tabular-nums',
+        render: (val) => formatDate(val),
+      },
+      {
+        key: 'actions',
+        label: 'Aksi',
+        align: 'center',
+        width: 'w-36',
+        render: (_, u) =>
+          canUpdate || canDelete ? (
+            <div className="flex items-center justify-center gap-1">
+              {/* Edit Profil Nama */}
+              {canUpdate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/master/user/edit/${u.id}`)}
+                      className="h-8 w-8 text-gray-600 hover:text-orange-600 hover:bg-orange-50 cursor-pointer"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Ubah Nama Tampilan</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Ganti Peran */}
+              {canUpdate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setRoleModalTarget(u);
+                        setNewSelectedRole(u.role);
+                      }}
+                      className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50 cursor-pointer"
+                    >
+                      <Shield className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Ganti Peran Akses</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Reset Password */}
+              {canUpdate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setResetModalTarget(u);
+                        setNewPassword('');
+                        setShowPassword(false);
+                      }}
+                      className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Reset Kata Sandi</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Toggle Status Aktif */}
+              {canUpdate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setActiveModalTarget(u)}
+                      className="h-8 w-8 text-gray-500 hover:text-gray-800 hover:bg-gray-100 cursor-pointer"
+                    >
+                      {u.isActive ? (
+                        <ToggleRight className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <ToggleLeft className="w-4 h-4 text-gray-400" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{u.isActive ? 'Nonaktifkan User' : 'Aktifkan User'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Hapus User */}
+              {canDelete && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteModalTarget(u)}
+                      className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Hapus User</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 font-medium select-none" title="Hanya Baca">
+              -
+            </span>
+          ),
+      },
+    ],
+    [pagination.page, pagination.pageSize, canUpdate, canDelete, navigate]
+  );
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -474,317 +680,27 @@ export const UserIndex: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Main Table Container */}
-      <Card className="border border-gray-200/90 bg-white shadow-xs rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50/90 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider select-none">
-              <tr>
-                <th className="py-3.5 px-4 w-14 text-center">No</th>
-                <th
-                  onClick={() => handleSort('username')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Pengguna</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('displayName')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Nama Tampilan</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('role')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors text-center"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>Peran Akses</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 text-center">Status</th>
-                <th
-                  onClick={() => handleSort('lastLoginAt')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors text-center"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>Terakhir Login</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 text-center w-36">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <LoadingSpinner size="md" />
-                      <p className="text-xs text-gray-500">Memuat data user...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : errorMessage ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center">
-                    <div className="flex flex-col items-center justify-center text-red-500 gap-2">
-                      <AlertCircle className="w-8 h-8" />
-                      <p className="font-medium text-sm">{errorMessage}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchUsers}
-                        className="mt-2 text-xs cursor-pointer"
-                      >
-                        Coba Lagi
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center text-gray-400 gap-2">
-                      <UserCog className="w-10 h-10 text-gray-300 stroke-[1.5]" />
-                      <p className="text-sm font-medium text-gray-700">Tidak ada user ditemukan</p>
-                      <p className="text-xs text-gray-500 max-w-sm">
-                        {hasActiveFilters
-                          ? 'Coba sesuaikan kata kunci pencarian atau bersihkan filter yang aktif.'
-                          : 'Belum ada akun pengguna staf yang terdaftar pada sistem.'}
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                users.map((u, idx) => {
-                  const rowNumber = (pagination.page - 1) * pagination.pageSize + idx + 1;
-                  const initialChar = (u.displayName || u.username || 'U').charAt(0).toUpperCase();
-
-                  return (
-                    <tr
-                      key={u.id}
-                      className={cn(
-                        'hover:bg-gray-50/80 transition-colors',
-                        u.isBlocked && 'bg-red-50/20'
-                      )}
-                    >
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono tabular-nums">
-                        {rowNumber}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-orange-50 border border-orange-200/60 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0">
-                            {initialChar}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-gray-900 font-mono text-xs">
-                              {u.username}
-                            </div>
-                            <div className="text-[11px] text-gray-400 font-mono tabular-nums">ID: #{u.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="text-gray-900 font-medium">{u.displayName || '-'}</div>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        {renderRoleBadge(u.role)}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          {u.isBlocked && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-                              <ShieldAlert className="w-3 h-3 text-red-600" />
-                              <span>Diblokir</span>
-                            </span>
-                          )}
-                          {u.isActive ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Aktif</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-                              <XCircle className="w-3 h-3 text-gray-500" />
-                              <span>Nonaktif</span>
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono tabular-nums">
-                        {formatDate(u.lastLoginAt)}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        {canUpdate || canDelete ? (
-                          <div className="flex items-center justify-center gap-1">
-                            {/* Edit Profil Nama */}
-                            {canUpdate && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => navigate(`/master/user/edit/${u.id}`)}
-                                    className="h-8 w-8 text-gray-600 hover:text-orange-600 hover:bg-orange-50 cursor-pointer"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Ubah Nama Tampilan</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Ganti Peran */}
-                            {canUpdate && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      setRoleModalTarget(u);
-                                      setNewSelectedRole(u.role);
-                                    }}
-                                    className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50 cursor-pointer"
-                                  >
-                                    <Shield className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Ganti Peran Akses</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Reset Password */}
-                            {canUpdate && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      setResetModalTarget(u);
-                                      setNewPassword('');
-                                      setShowPassword(false);
-                                    }}
-                                    className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
-                                  >
-                                    <KeyRound className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Reset Kata Sandi</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Toggle Status Aktif */}
-                            {canUpdate && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setActiveModalTarget(u)}
-                                    className="h-8 w-8 text-gray-500 hover:text-gray-800 hover:bg-gray-100 cursor-pointer"
-                                  >
-                                    {u.isActive ? (
-                                      <ToggleRight className="w-4 h-4 text-emerald-600" />
-                                    ) : (
-                                      <ToggleLeft className="w-4 h-4 text-gray-400" />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{u.isActive ? 'Nonaktifkan User' : 'Aktifkan User'}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Hapus User */}
-                            {canDelete && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setDeleteModalTarget(u)}
-                                    className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Hapus User</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400 font-medium select-none" title="Hanya Baca">
-                            -
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        {!isLoading && !errorMessage && users.length > 0 && (
-          <div className="py-3.5 px-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-            <div>
-              Menampilkan{' '}
-              <span className="font-semibold text-gray-900 tabular-nums">
-                {(pagination.page - 1) * pagination.pageSize + 1}
-              </span>{' '}
-              sampai{' '}
-              <span className="font-semibold text-gray-900 tabular-nums">
-                {Math.min(pagination.page * pagination.pageSize, pagination.total)}
-              </span>{' '}
-              dari <span className="font-semibold text-gray-900 tabular-nums">{pagination.total}</span> data
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                disabled={pagination.page <= 1}
-                className="h-8 px-2.5 text-xs cursor-pointer disabled:opacity-40"
-              >
-                Sebelumnya
-              </Button>
-              <div className="px-2 font-medium text-gray-700 tabular-nums">
-                Halaman {pagination.page} dari {totalPages}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                disabled={pagination.page >= totalPages}
-                className="h-8 px-2.5 text-xs cursor-pointer disabled:opacity-40"
-              >
-                Selanjutnya
-              </Button>
-            </div>
-          </div>
-        )}
-      </Card>
+      {/* Data Table */}
+      <DataTable
+        columns={columns}
+        data={users}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        sortConfig={sortConfig}
+        onSortChange={(newSort) => {
+          setSortConfig(newSort);
+          setPagination((prev) => ({ ...prev, page: 1 }));
+        }}
+        isLoading={isLoading}
+        itemLabel="user"
+        emptyMessage="Tidak ada user ditemukan"
+        emptyDescription={
+          hasActiveFilters
+            ? 'Coba sesuaikan kata kunci pencarian atau bersihkan filter yang aktif.'
+            : 'Belum ada akun pengguna staf yang terdaftar pada sistem.'
+        }
+        rowClassName={(u) => (u.isBlocked ? 'bg-red-50/20' : '')}
+      />
 
       {/* Modal: Ganti Peran Akses */}
       {roleModalTarget && typeof document !== 'undefined' && createPortal(

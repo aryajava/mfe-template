@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -26,6 +26,8 @@ import {
   TooltipTrigger,
   TooltipContent,
   LoadingSpinner,
+  DataTable,
+  type DataTableColumn,
   useLoading,
   useAuth,
   useEventBus,
@@ -216,6 +218,225 @@ export const ProdukIndex: React.FC = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
+  const columns = useMemo<DataTableColumn<ProductApiItem>[]>(
+    () => [
+      {
+        key: 'no',
+        label: '#',
+        align: 'center',
+        width: 'w-14',
+        className: 'text-center text-xs text-gray-400 font-mono whitespace-nowrap',
+        render: (_, __, idx) => (pagination.page - 1) * pagination.pageSize + idx + 1,
+      },
+      {
+        key: 'actions',
+        label: 'Aksi',
+        align: 'center',
+        width: 'w-24',
+        render: (_, item) => (
+          <div className="inline-flex items-center justify-center gap-1">
+            {canUpdate && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate(`edit/${item.id}`)}
+                    className="h-8 w-8 hover:text-orange-600 hover:bg-orange-50 cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Ubah Produk</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {canToggleStatus && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleToggleStatusClick(item)}
+                    className={cn(
+                      'h-8 w-8 cursor-pointer',
+                      item.isActive
+                        ? 'hover:text-amber-600 hover:bg-amber-50 text-emerald-600'
+                        : 'hover:text-emerald-600 hover:bg-emerald-50 text-gray-400'
+                    )}
+                  >
+                    {item.isActive ? (
+                      <ToggleRight className="w-4 h-4" />
+                    ) : (
+                      <ToggleLeft className="w-4 h-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{item.isActive ? 'Nonaktifkan Produk' : 'Aktifkan Produk'}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {canDelete && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteTarget(item)}
+                    className="h-8 w-8 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Hapus Permanen</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: 'title',
+        label: 'Produk',
+        sortable: true,
+        render: (_, item) => (
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <Tag className="w-5 h-5 text-gray-400" />
+              )}
+            </div>
+            <div className="min-w-0 max-w-xs sm:max-w-md">
+              <span
+                className="font-semibold text-gray-900 block truncate hover:text-orange-600 transition-colors"
+                title={item.title}
+              >
+                {item.title}
+              </span>
+              <span
+                className="text-xs text-gray-500 truncate block"
+                title={item.description || ''}
+              >
+                {item.description || 'Tidak ada deskripsi'}
+              </span>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'category',
+        label: 'Kategori',
+        width: 'w-32',
+        render: (cat) => (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 whitespace-nowrap">
+            {cat || '-'}
+          </span>
+        ),
+      },
+      {
+        key: 'price',
+        label: 'Harga Dasar',
+        sortable: true,
+        align: 'right',
+        width: 'w-36',
+        className: 'font-medium text-gray-600 whitespace-nowrap',
+        render: (price, item) => {
+          const discountVal = item.discountPercent || 0;
+          return (
+            <div>
+              {discountVal > 0 ? (
+                <span className="line-through text-xs text-gray-400 block whitespace-nowrap">
+                  {formatRupiah(price)}
+                </span>
+              ) : null}
+              <span className="whitespace-nowrap">{formatRupiah(price)}</span>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'discountPercent',
+        label: 'Diskon',
+        align: 'center',
+        width: 'w-24',
+        render: (discountVal) =>
+          discountVal && discountVal > 0 ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap">
+              {discountVal}%
+            </span>
+          ) : (
+            <span className="text-gray-400 text-xs">-</span>
+          ),
+      },
+      {
+        key: 'effectivePrice',
+        label: 'Harga Efektif',
+        align: 'right',
+        width: 'w-36',
+        className: 'font-bold text-orange-600 whitespace-nowrap',
+        render: (_, item) => {
+          const discountVal = item.discountPercent || 0;
+          const hargaEfektif = hitungHargaEfektif(item.price, discountVal);
+          return <span className="whitespace-nowrap">{formatRupiah(hargaEfektif)}</span>;
+        },
+      },
+      {
+        key: 'stock',
+        label: 'Stok',
+        sortable: true,
+        align: 'center',
+        width: 'w-32',
+        render: (stock) =>
+          stock === 0 ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 border border-red-200 whitespace-nowrap">
+              Habis
+            </span>
+          ) : stock <= 5 ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+              {stock} (Menipis)
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium text-gray-700 whitespace-nowrap">
+              {stock} unit
+            </span>
+          ),
+      },
+      {
+        key: 'isActive',
+        label: 'Status',
+        align: 'center',
+        width: 'w-28',
+        render: (isActive) =>
+          isActive ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+              <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+              Aktif
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">
+              <XCircle className="w-3 h-3 flex-shrink-0" />
+              Nonaktif
+            </span>
+          ),
+      },
+    ],
+    [pagination.page, pagination.pageSize, canUpdate, canToggleStatus, canDelete, navigate]
+  );
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -376,403 +597,26 @@ export const ProdukIndex: React.FC = () => {
         </div>
       </Card>
 
-      {/* Data Table Card using Card component */}
-      <Card className="border border-gray-200/90 bg-white shadow-xs rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1050px] text-left text-sm text-gray-600">
-            <thead className="bg-gray-50/80 border-b border-gray-200 text-xs uppercase font-semibold text-gray-700 tracking-wider">
-              <tr>
-                <th className="py-3.5 px-4 w-14 text-center whitespace-nowrap">#</th>
-                <th className="py-3.5 px-4 w-24 text-center whitespace-nowrap">Aksi</th>
-                <th
-                  onClick={() => toggleSort('title')}
-                  className="py-3.5 px-4 min-w-[280px] cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>Produk</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 w-32 whitespace-nowrap">Kategori</th>
-                <th
-                  onClick={() => toggleSort('price')}
-                  className="py-3.5 px-4 w-36 text-right cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>Harga Dasar</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 w-24 text-center whitespace-nowrap">Diskon</th>
-                <th className="py-3.5 px-4 w-36 text-right whitespace-nowrap">Harga Efektif</th>
-                <th
-                  onClick={() => toggleSort('stock')}
-                  className="py-3.5 px-4 w-32 text-center cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap"
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <span>Stok</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 w-28 text-center whitespace-nowrap">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={9} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <LoadingSpinner size="lg" />
-                      <span className="text-xs text-gray-500 font-medium">
-                        Memuat data produk dari API...
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center">
-                    <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                      <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center mb-3">
-                        <Package className="w-6 h-6 text-orange-500" />
-                      </div>
-                      <h3 className="font-semibold text-gray-900 mb-1">
-                        Tidak ada data produk
-                      </h3>
-                      <p className="text-xs text-gray-500 mb-4">
-                        {debouncedSearch || selectedCategory !== 'Semua'
-                          ? 'Tidak ditemukan produk yang cocok dengan kata kunci atau filter saat ini.'
-                          : 'Belum ada produk di database.'}
-                      </p>
-                      {(debouncedSearch || selectedCategory !== 'Semua') ? (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={() => {
-                            setSearchTerm('');
-                            setSelectedCategory('Semua');
-                          }}
-                          className="text-orange-600 cursor-pointer"
-                        >
-                          Hapus filter pencarian
-                        </Button>
-                      ) : (
-                        canCreate && (
-                          <Button
-                            asChild
-                            size="sm"
-                            className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-xs cursor-pointer font-medium"
-                          >
-                            <Link to="tambah">
-                              <Plus className="w-4 h-4" />
-                              <span>Tambah Produk Pertama</span>
-                            </Link>
-                          </Button>
-                        )
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                products.map((item, idx) => {
-                  const itemIndex =
-                    (pagination.page - 1) * pagination.pageSize + idx + 1;
-                  const discountVal = item.discountPercent || 0;
-                  const hargaEfektif = hitungHargaEfektif(item.price, discountVal);
-
-                  return (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-gray-50/70 transition-colors"
-                    >
-                      {/* # */}
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-400 font-mono whitespace-nowrap">
-                        {itemIndex}
-                      </td>
-
-                      {/* Aksi with Tooltip & Button from shared */}
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <div className="inline-flex items-center justify-center gap-1">
-                          {canUpdate && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => navigate(`edit/${item.id}`)}
-                                  className="h-8 w-8 hover:text-orange-600 hover:bg-orange-50"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Ubah Produk</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-
-                          {/* Tombol Toggle Status (Aktifkan / Nonaktifkan) */}
-                          {canToggleStatus && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleToggleStatusClick(item)}
-                                  className={cn(
-                                    "h-8 w-8",
-                                    item.isActive
-                                      ? "hover:text-amber-600 hover:bg-amber-50 text-emerald-600"
-                                      : "hover:text-emerald-600 hover:bg-emerald-50 text-gray-400"
-                                  )}
-                                >
-                                  {item.isActive ? (
-                                    <ToggleRight className="w-4 h-4" />
-                                  ) : (
-                                    <ToggleLeft className="w-4 h-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{item.isActive ? 'Nonaktifkan Produk' : 'Aktifkan Produk'}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-
-                          {/* Tombol Hapus Permanen */}
-                          {canDelete && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setDeleteTarget(item)}
-                                  className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Hapus Permanen</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Produk */}
-                      <td className="py-3.5 px-4 min-w-[280px]">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                            {item.image ? (
-                              <img
-                                src={item.image}
-                                alt={item.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <Tag className="w-5 h-5 text-gray-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0 max-w-xs sm:max-w-md">
-                            <span
-                              className="font-semibold text-gray-900 block truncate hover:text-orange-600 transition-colors"
-                              title={item.title}
-                            >
-                              {item.title}
-                            </span>
-                            <span
-                              className="text-xs text-gray-500 truncate block"
-                              title={item.description || ''}
-                            >
-                              {item.description || 'Tidak ada deskripsi'}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Kategori */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 whitespace-nowrap">
-                          {item.category || '-'}
-                        </span>
-                      </td>
-
-                      {/* Harga Dasar */}
-                      <td className="py-3.5 px-4 text-right font-medium text-gray-600 whitespace-nowrap">
-                        {discountVal > 0 ? (
-                          <span className="line-through text-xs text-gray-400 block whitespace-nowrap">
-                            {formatRupiah(item.price)}
-                          </span>
-                        ) : null}
-                        <span className="whitespace-nowrap">{formatRupiah(item.price)}</span>
-                      </td>
-
-                      {/* Diskon */}
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        {discountVal > 0 ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap">
-                            {discountVal}%
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
-                      </td>
-
-                      {/* Harga Efektif */}
-                      <td className="py-3.5 px-4 text-right font-bold text-orange-600 whitespace-nowrap">
-                        <span className="whitespace-nowrap">{formatRupiah(hargaEfektif)}</span>
-                      </td>
-
-                      {/* Stok */}
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        {item.stock === 0 ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 border border-red-200 whitespace-nowrap">
-                            Habis
-                          </span>
-                        ) : item.stock <= 5 ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
-                            {item.stock} (Menipis)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium text-gray-700 whitespace-nowrap">
-                            {item.stock} unit
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        {item.isActive ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                            <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
-                            Aktif
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">
-                            <XCircle className="w-3 h-3 flex-shrink-0" />
-                            Nonaktif
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Table Footer / Pagination */}
-        <div className="py-3 px-4 bg-gray-50/80 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-gray-600">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Selector Jumlah Baris per Halaman */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500">Baris:</span>
-              <select
-                value={pagination.pageSize}
-                onChange={(e) => {
-                  const newSize = Number(e.target.value);
-                  setPagination((prev) => ({
-                    ...prev,
-                    pageSize: newSize,
-                    page: 1,
-                  }));
-                }}
-                className="h-7 px-2 py-0 text-xs bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500 text-gray-800 font-medium cursor-pointer"
-                aria-label="Pilih jumlah baris per halaman"
-              >
-                {[5, 10, 20, 50, 100].map((size) => (
-                  <option key={size} value={size}>
-                    {size} / hal
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              Menampilkan{' '}
-              <span className="font-semibold text-gray-900">
-                {pagination.total === 0
-                  ? 0
-                  : (pagination.page - 1) * pagination.pageSize + 1}
-              </span>{' '}
-              sampai{' '}
-              <span className="font-semibold text-gray-900">
-                {Math.min(pagination.page * pagination.pageSize, pagination.total)}
-              </span>{' '}
-              dari{' '}
-              <span className="font-semibold text-gray-900">
-                {pagination.total}
-              </span>{' '}
-              produk
-            </div>
-
-
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: Math.max(1, prev.page - 1),
-                  }))
-                }
-                disabled={pagination.page === 1 || isLoading}
-                className="h-7 px-2 text-xs"
-              >
-                Sebelumnya
-              </Button>
-
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                let pageNum = i + 1;
-                if (totalPages > 5 && pagination.page > 3) {
-                  pageNum = pagination.page - 3 + i;
-                  if (pageNum > totalPages) pageNum = totalPages - 4 + i;
-                }
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={pagination.page === pageNum ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() =>
-                      setPagination((prev) => ({ ...prev, page: pageNum }))
-                    }
-                    className={cn(
-                      'h-7 w-7 p-0 text-xs',
-                      pagination.page === pageNum && 'bg-orange-600 hover:bg-orange-700'
-                    )}
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: Math.min(totalPages, prev.page + 1),
-                  }))
-                }
-                disabled={pagination.page === totalPages || isLoading}
-                className="h-7 px-2 text-xs"
-              >
-                Berikutnya
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
+      {/* Data Table */}
+      <DataTable
+        columns={columns}
+        data={products}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        sortConfig={sortConfig}
+        onSortChange={(newSort) => {
+          setSortConfig(newSort);
+          setPagination((prev) => ({ ...prev, page: 1 }));
+        }}
+        isLoading={isLoading}
+        itemLabel="produk"
+        emptyMessage="Tidak ada data produk"
+        emptyDescription={
+          debouncedSearch || selectedCategory !== 'Semua'
+            ? 'Tidak ditemukan produk yang cocok dengan kata kunci atau filter saat ini.'
+            : 'Belum ada produk di database.'
+        }
+      />
 
       {/* Modal Dialog Konfirmasi Ubah Status (Aktif / Nonaktif) */}
       {statusTarget && typeof document !== 'undefined' && createPortal(

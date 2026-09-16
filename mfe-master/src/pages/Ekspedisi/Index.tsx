@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -25,6 +25,8 @@ import {
   TooltipTrigger,
   TooltipContent,
   LoadingSpinner,
+  DataTable,
+  type DataTableColumn,
   useLoading,
   useAuth,
   useEventBus,
@@ -202,6 +204,139 @@ export const EkspedisiIndex: React.FC = () => {
 
   const hasAnyRowAction = canUpdate || canToggleStatus || canDelete;
 
+  const columns = useMemo<DataTableColumn<CourierItem>[]>(
+    () => [
+      {
+        key: 'no',
+        label: '#',
+        align: 'center',
+        width: 'w-14',
+        className: 'text-center font-medium text-gray-400 text-xs',
+        render: (_, __, index) => (pagination.page - 1) * pagination.pageSize + index + 1,
+      },
+      {
+        key: 'actions',
+        label: 'Aksi',
+        align: 'center',
+        width: 'w-28',
+        render: (_, item) =>
+          hasAnyRowAction ? (
+            <div className="flex items-center justify-center gap-1">
+              {canUpdate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      className="h-8 w-8 text-gray-500 hover:text-orange-600 hover:bg-orange-50 cursor-pointer"
+                    >
+                      <Link to={`edit/${item.id}`}>
+                        <Edit2 className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Ubah Ekspedisi</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {canToggleStatus && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setStatusModalTarget(item)}
+                      className={cn(
+                        'h-8 w-8 cursor-pointer transition-colors',
+                        item.isActive
+                          ? 'text-emerald-600 hover:text-amber-600 hover:bg-amber-50'
+                          : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
+                      )}
+                    >
+                      {item.isActive ? (
+                        <ToggleRight className="w-4 h-4" />
+                      ) : (
+                        <ToggleLeft className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{item.isActive ? 'Nonaktifkan Ekspedisi' : 'Aktifkan Ekspedisi'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {canDelete && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteModalTarget(item)}
+                      className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Hapus Permanen</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 font-medium select-none" title="Hanya Baca">
+              —
+            </span>
+          ),
+      },
+      {
+        key: 'name',
+        label: 'Nama Ekspedisi',
+        sortable: true,
+        render: (_, item) => (
+          <div className="font-semibold text-gray-900 hover:text-orange-600 transition-colors">
+            {item.name}
+          </div>
+        ),
+      },
+      {
+        key: 'shippingFee',
+        label: 'Tarif Ongkir',
+        sortable: true,
+        align: 'right',
+        width: 'w-44',
+        render: (fee) => (
+          <span className="font-semibold text-gray-900 font-mono text-sm">
+            {formatRupiah(fee)}
+          </span>
+        ),
+      },
+      {
+        key: 'isActive',
+        label: 'Status',
+        align: 'center',
+        width: 'w-32',
+        render: (val) =>
+          val ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              <span>Aktif</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+              <XCircle className="w-3 h-3 text-gray-500" />
+              <span>Nonaktif</span>
+            </span>
+          ),
+      },
+    ],
+    [pagination.page, pagination.pageSize, hasAnyRowAction, canUpdate, canToggleStatus, canDelete]
+  );
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -347,262 +482,27 @@ export const EkspedisiIndex: React.FC = () => {
         </div>
       )}
 
-      {/* Data Table Card */}
-      <Card className="shadow-xs overflow-hidden border border-gray-200/90 bg-white rounded-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-left text-sm text-gray-600">
-            <thead className="bg-gray-50/80 border-b border-gray-200 text-xs uppercase font-semibold text-gray-700 tracking-wider">
-              <tr>
-                <th className="py-3.5 px-4 w-14 text-center whitespace-nowrap">#</th>
-                <th className="py-3.5 px-4 w-28 text-center whitespace-nowrap">Aksi</th>
-                <th
-                  onClick={() => handleSort('name')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap select-none"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Nama Ekspedisi</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('shippingFee')}
-                  className="py-3.5 px-4 w-44 text-right cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap select-none"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span>Tarif Ongkir</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 w-32 text-center whitespace-nowrap">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <LoadingSpinner size="lg" />
-                      <span className="text-xs text-gray-500 font-medium">
-                        Memuat data ekspedisi dari API backend...
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ) : couriers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center">
-                    <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                      <div className="w-12 h-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-3">
-                        <Truck className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                        Tidak Ada Ekspedisi Ditemukan
-                      </h3>
-                      <p className="text-xs text-gray-500 mb-4 text-center">
-                        {debouncedSearch
-                          ? `Tidak ditemukan mitra ekspedisi yang cocok dengan kata kunci "${debouncedSearch}".`
-                          : 'Belum ada data ekspedisi pengiriman tersimpan dalam sistem toko.'}
-                      </p>
-                      {debouncedSearch ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSearchTerm('');
-                            setSelectedStatus('');
-                          }}
-                          className="cursor-pointer text-xs"
-                        >
-                          Reset Pencarian
-                        </Button>
-                      ) : canCreate ? (
-                        <Button
-                          asChild
-                          size="sm"
-                          className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-xs cursor-pointer font-medium"
-                        >
-                          <Link to="tambah">
-                            <Plus className="w-4 h-4" />
-                            <span>Tambah Ekspedisi Pertama</span>
-                          </Link>
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                couriers.map((item, index) => {
-                  const itemNumber = (pagination.page - 1) * pagination.pageSize + index + 1;
-
-                  return (
-                    <tr
-                      key={item.id}
-                      className={cn(
-                        'transition-colors hover:bg-gray-50/80',
-                        !item.isActive && 'bg-gray-50/40 text-gray-500'
-                      )}
-                    >
-                      {/* Nomor Urut */}
-                      <td className="py-3.5 px-4 text-center font-medium text-gray-400 text-xs">
-                        {itemNumber}
-                      </td>
-
-                      {/* Kolom Aksi Terproteksi Hak Akses */}
-                      <td className="py-3.5 px-4 text-center">
-                        {hasAnyRowAction ? (
-                          <div className="flex items-center justify-center gap-1">
-                            {/* Tombol Ubah Ekspedisi */}
-                            {canUpdate && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    asChild
-                                    className="h-8 w-8 text-gray-500 hover:text-orange-600 hover:bg-orange-50 cursor-pointer"
-                                  >
-                                    <Link to={`edit/${item.id}`}>
-                                      <Edit2 className="w-4 h-4" />
-                                    </Link>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Ubah Ekspedisi</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Tombol Alih Status Operasional */}
-                            {canToggleStatus && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setStatusModalTarget(item)}
-                                    className={cn(
-                                      'h-8 w-8 cursor-pointer transition-colors',
-                                      item.isActive
-                                        ? 'text-emerald-600 hover:text-amber-600 hover:bg-amber-50'
-                                        : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
-                                    )}
-                                  >
-                                    {item.isActive ? (
-                                      <ToggleRight className="w-4 h-4" />
-                                    ) : (
-                                      <ToggleLeft className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{item.isActive ? 'Nonaktifkan Ekspedisi' : 'Aktifkan Ekspedisi'}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            {/* Tombol Hapus Permanen */}
-                            {canDelete && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setDeleteModalTarget(item)}
-                                    className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Hapus Permanen</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400 font-medium select-none" title="Hanya Baca">
-                            —
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Nama Ekspedisi */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-gray-900 hover:text-orange-600 transition-colors">
-                          {item.name}
-                        </div>
-                      </td>
-
-                      {/* Tarif Ongkir */}
-                      <td className="py-3.5 px-4 text-right">
-                        <span className="font-semibold text-gray-900 font-mono text-sm">
-                          {formatRupiah(item.shippingFee)}
-                        </span>
-                      </td>
-
-                      {/* Status Operasional */}
-                      <td className="py-3.5 px-4 text-center">
-                        {item.isActive ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>Aktif</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-                            <XCircle className="w-3 h-3 text-gray-500" />
-                            <span>Nonaktif</span>
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        {!isLoading && !errorMessage && couriers.length > 0 && (
-          <div className="py-3.5 px-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-            <div>
-              Menampilkan{' '}
-              <span className="font-semibold text-gray-900">
-                {(pagination.page - 1) * pagination.pageSize + 1}
-              </span>{' '}
-              sampai{' '}
-              <span className="font-semibold text-gray-900">
-                {Math.min(pagination.page * pagination.pageSize, pagination.total)}
-              </span>{' '}
-              dari <span className="font-semibold text-gray-900">{pagination.total}</span> data
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                disabled={pagination.page <= 1}
-                className="h-8 px-2.5 text-xs cursor-pointer disabled:opacity-40"
-              >
-                Sebelumnya
-              </Button>
-              <span className="px-2 text-xs font-medium text-gray-700">
-                {pagination.page} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                disabled={pagination.page >= totalPages}
-                className="h-8 px-2.5 text-xs cursor-pointer disabled:opacity-40"
-              >
-                Selanjutnya
-              </Button>
-            </div>
-          </div>
-        )}
-      </Card>
+      {/* Data Table */}
+      <DataTable
+        columns={columns}
+        data={couriers}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        sortConfig={sortConfig}
+        onSortChange={(newSort) => {
+          setSortConfig(newSort);
+          setPagination((prev) => ({ ...prev, page: 1 }));
+        }}
+        isLoading={isLoading}
+        itemLabel="ekspedisi"
+        emptyMessage="Tidak Ada Ekspedisi Ditemukan"
+        emptyDescription={
+          debouncedSearch
+            ? `Tidak ditemukan mitra ekspedisi yang cocok dengan kata kunci "${debouncedSearch}".`
+            : 'Belum ada data ekspedisi pengiriman tersimpan dalam sistem toko.'
+        }
+        rowClassName={(item) => (!item.isActive ? 'bg-gray-50/40 text-gray-500' : '')}
+      />
 
       {/* Modal Konfirmasi Ubah Status */}
       {statusModalTarget && typeof document !== 'undefined' && createPortal(
