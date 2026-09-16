@@ -79,3 +79,23 @@ export const MFE_EVENTS = {
 } as const;
 
 export type MFEEventType = (typeof MFE_EVENTS)[keyof typeof MFE_EVENTS];
+
+export interface DataUpdatedPayload {
+  entity:
+    | 'menu-group'
+    | 'menu'
+    | 'role-menu'
+    | 'product'
+    | 'category'
+    | 'courier'
+    | 'customer'
+    | 'user'
+    | 'order'
+    | 'discount'
+    | 'app-config'
+    | 'store-config'
+    | string;
+  action?: 'create' | 'update' | 'delete' | 'status' | 'approve' | 'reject' | string;
+  id?: string | number;
+  data?: any;
+}

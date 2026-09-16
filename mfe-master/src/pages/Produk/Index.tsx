@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -28,6 +29,7 @@ import {
   useLoading,
   useAuth,
   useEventBus,
+  useEventSubscription,
   MFE_EVENTS,
   cn,
   type PaginationConfig,
@@ -125,6 +127,18 @@ export const ProdukIndex: React.FC = () => {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Reaktif terhadap perubahan kategori, produk, dan persetujuan diskon
+  useEventSubscription(MFE_EVENTS.DATA_UPDATED, (payload: any) => {
+    if (payload?.entity === 'category') {
+      productApi
+        .getCategories()
+        .then((cats) => setCategories(cats))
+        .catch((err) => console.error('Gagal memuat kategori:', err));
+    } else if (payload?.entity === 'product' || payload?.entity === 'discount') {
+      fetchProducts();
+    }
+  });
+
   // Handle status toggle modal open
   const handleToggleStatusClick = (item: ProductApiItem) => {
     if (!canToggleStatus) return;
@@ -154,6 +168,7 @@ export const ProdukIndex: React.FC = () => {
         message: `Produk "${item.title}" berhasil ${nextStatus ? 'diaktifkan' : 'dinonaktifkan'}.`,
         type: 'success',
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'product', action: 'status', id: item.id });
       setStatusTarget(null);
       fetchProducts();
     } catch (err: any) {
@@ -178,6 +193,7 @@ export const ProdukIndex: React.FC = () => {
         message: `Produk "${deleteTarget.title}" berhasil dihapus permanen.`,
         type: 'success',
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'product', action: 'delete', id: deleteTarget.id });
       setDeleteTarget(null);
       fetchProducts();
     } catch (err: any) {
@@ -202,20 +218,9 @@ export const ProdukIndex: React.FC = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Breadcrumb & Header */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-1">
-            <Link to="/dashboard" className="hover:text-orange-600 transition-colors">
-              Beranda
-            </Link>
-            <span>/</span>
-            <Link to="/master" className="hover:text-orange-600 transition-colors">
-              Master
-            </Link>
-            <span>/</span>
-            <span className="text-orange-600 font-semibold">Produk</span>
-          </div>
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200/60 shadow-xs">
               <Package className="h-6 w-6" />
@@ -288,16 +293,16 @@ export const ProdukIndex: React.FC = () => {
       )}
 
       {/* Filter & Toolbar using Card & Input from @template/shared */}
-      <Card className="p-4 shadow-xs">
+      <Card className="p-4 sm:p-5 shadow-xs border border-gray-200/90 bg-white rounded-xl">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Search box using Input */}
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <div className="relative flex-1 min-w-0 w-full">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari produk (nama / deskripsi)..."
-              className="pl-10 bg-gray-50 focus:bg-white w-full"
+              className="pl-10 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
             />
           </div>
 
@@ -309,7 +314,7 @@ export const ProdukIndex: React.FC = () => {
                 setSelectedCategory(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full h-10 px-3 py-2 text-sm bg-gray-50 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:bg-white text-gray-800 cursor-pointer"
+              className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
             >
               <option value="Semua">Semua Kategori</option>
               {categories.map((cat) => (
@@ -328,7 +333,7 @@ export const ProdukIndex: React.FC = () => {
                 setSelectedStatus(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full h-10 px-3 py-2 text-sm bg-gray-50 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:bg-white text-gray-800 cursor-pointer"
+              className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
             >
               <option value="">Semua Status</option>
               <option value="true">Aktif</option>
@@ -345,7 +350,7 @@ export const ProdukIndex: React.FC = () => {
                 setSortConfig({ key, direction: direction as 'asc' | 'desc' });
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full h-10 px-3 py-2 text-sm bg-gray-50 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:bg-white text-gray-800 cursor-pointer"
+              className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
             >
               <option value="createdAt-desc">Terbaru dibuat</option>
               <option value="createdAt-asc">Terlama dibuat</option>
@@ -372,7 +377,7 @@ export const ProdukIndex: React.FC = () => {
       </Card>
 
       {/* Data Table Card using Card component */}
-      <Card className="shadow-xs overflow-hidden">
+      <Card className="border border-gray-200/90 bg-white shadow-xs rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1050px] text-left text-sm text-gray-600">
             <thead className="bg-gray-50/80 border-b border-gray-200 text-xs uppercase font-semibold text-gray-700 tracking-wider">
@@ -770,8 +775,8 @@ export const ProdukIndex: React.FC = () => {
       </Card>
 
       {/* Modal Dialog Konfirmasi Ubah Status (Aktif / Nonaktif) */}
-      {statusTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+      {statusTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <Card className="max-w-md w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-start gap-3">
               <div
@@ -827,12 +832,13 @@ export const ProdukIndex: React.FC = () => {
               </Button>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Dialog Konfirmasi Hapus Permanen */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+      {deleteTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <Card className="max-w-md w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-red-600">
@@ -870,7 +876,8 @@ export const ProdukIndex: React.FC = () => {
               </Button>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

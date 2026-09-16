@@ -189,6 +189,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     });
 
+    // Re-evaluasi izin dan profil saat eventBus memancarkan DATA_UPDATED terkait
+    const unsubData = eventBus.subscribe(MFE_EVENTS.DATA_UPDATED, (payload: any) => {
+      const token = storage.retrieve("apiKey") || storage.retrieve("token");
+      if (!token) return;
+
+      const entity = payload?.entity;
+      if (entity === 'menu-group' || entity === 'menu' || entity === 'role-menu') {
+        fetchMenuPermissions(token);
+      } else if (entity === 'user') {
+        fetchUserProfile(token);
+      }
+    });
+
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleStorage);
 
@@ -197,6 +210,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleStorage);
       unsubPerms();
+      unsubData();
     };
   }, []);
 

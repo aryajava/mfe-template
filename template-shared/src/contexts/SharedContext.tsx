@@ -16,8 +16,12 @@ export interface MenuPermissionItem {
   menuName?: string;
   groupCode?: string;
   groupName?: string;
+  groupUrlPrefix?: string;
+  mfeKey?: string;
   urlPrefix?: string;
   fullPath?: string;
+  icon?: string | null;
+  groupIcon?: string | null;
   canRead: boolean;
   canCreate: boolean;
   canUpdate: boolean;

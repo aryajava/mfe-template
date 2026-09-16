@@ -25,3 +25,16 @@ _Avoid_: Route guard, route interceptor, protected route wrapper.
 
 **Component Registry**:
 A catalog or mapping between domain feature identifiers and their respective React components.
+
+**MFE Module**:
+A physical, independently deployed Webpack Module Federation remote container exposing an entry point (`scope`, `module`, `url`).
+
+**Menu Group**:
+A logical business navigation container defined in the backend/database (`groupCode`, `groupName`, `urlPrefix`, and `mfeKey`) representing a section in the sidebar.
+
+**MfeKey**:
+An abstract identifier assigned to a `Menu Group` by the backend to map it to an `MFE Module` in the Shell's catalog. Decouples physical MFE deployments from logical menu groups, enabling 1-to-many relationships (e.g. one `mfe-report` serving both `/report` and `/cetak` groups).
+
+**Menu Icon Identifier**:
+A canonical Lucide icon identifier string (e.g. `Package`, `ShoppingBag`, `Database`, `Settings`) stored in `MASTER_MENU.ICON` and `MASTER_MENU_GROUP.ICON`, delivered via `/role-menus/my-permissions`, and resolved dynamically by the frontend shell with fallback to `Box` (menu item) or `Layers` (menu group).
+_Avoid_: Material icon, material glyph, icon asset path.

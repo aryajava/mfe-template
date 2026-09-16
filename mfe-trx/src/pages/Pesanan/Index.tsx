@@ -23,6 +23,7 @@ import {
   useLoading,
   useAuth,
   useEventBus,
+  useEventSubscription,
   MFE_EVENTS,
 } from '@template/shared';
 import { orderApi, OrderQueryParams } from '../../services/orderApi';
@@ -116,6 +117,13 @@ export const PesananIndex: React.FC = () => {
     loadOrders();
   }, [loadOrders]);
 
+  // Reaktif terhadap perubahan pesanan
+  useEventSubscription(MFE_EVENTS.DATA_UPDATED, (payload: any) => {
+    if (payload?.entity === 'order') {
+      loadOrders();
+    }
+  });
+
   // Actions
   const handleOpenDetail = async (id: number) => {
     try {
@@ -142,6 +150,7 @@ export const PesananIndex: React.FC = () => {
         type: 'success',
         message: `Pesanan #${id} berhasil dikemas.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'order', action: 'update', id });
       setIsDetailOpen(false);
       loadOrders();
     } catch (err: any) {
@@ -162,6 +171,7 @@ export const PesananIndex: React.FC = () => {
         type: 'success',
         message: `Pesanan #${id} ditandai dikirim.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'order', action: 'update', id });
       setIsDetailOpen(false);
       loadOrders();
     } catch (err: any) {
@@ -187,6 +197,8 @@ export const PesananIndex: React.FC = () => {
         type: 'success',
         message: `Pesanan #${id} berhasil dibatalkan. Stok telah dikembalikan.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'order', action: 'cancel', id });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'product', action: 'update' });
       setIsBatalOpen(false);
       setIsDetailOpen(false);
       loadOrders();

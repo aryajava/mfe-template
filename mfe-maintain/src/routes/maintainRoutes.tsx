@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '@template/shared';
 import PengaturanAplikasiIndex from '../pages/PengaturanAplikasi/Index';
 import PengaturanTokoIndex from '../pages/PengaturanToko/Index';
@@ -17,36 +17,25 @@ export const MaintainRoutes: React.FC = () => {
   const canReadMenu =
     canAccessMenu('master-menu') || canAccessMenu('menu');
 
-  // Default target fallback
-  const getDefaultTarget = (): string | null => {
-    if (canReadGrupMenu) return 'grup-menu';
-    if (canReadMenu) return 'menu';
-    if (canReadAplikasi) return 'pengaturan-aplikasi';
-    if (canReadToko) return 'pengaturan-toko';
-    return null;
-  };
-
-  const defaultTarget = getDefaultTarget();
+  // Cari halaman pertama yang bisa diakses untuk index
+  const IndexPage = (() => {
+    if (canReadGrupMenu) return <GrupMenuIndex />;
+    if (canReadMenu) return <MenuIndex />;
+    if (canReadAplikasi) return <PengaturanAplikasiIndex />;
+    if (canReadToko) return <PengaturanTokoIndex />;
+    return <NotFound />;
+  })();
 
   return (
     <Routes>
-      {/* Index redirection based on access */}
-      <Route
-        index
-        element={
-          defaultTarget ? (
-            <Navigate to={defaultTarget} replace />
-          ) : (
-            <NotFound />
-          )
-        }
-      />
+      {/* Index: render halaman pertama yang bisa diakses */}
+      <Route index element={IndexPage} />
 
       {/* Sub-domain: Master Grup Menu */}
       {canReadGrupMenu && (
         <>
           <Route path="grup-menu" element={<GrupMenuIndex />} />
-          <Route path="master-grup-menu" element={<Navigate to="../grup-menu" replace />} />
+          <Route path="master-grup-menu" element={<GrupMenuIndex />} />
         </>
       )}
 
@@ -54,7 +43,7 @@ export const MaintainRoutes: React.FC = () => {
       {canReadMenu && (
         <>
           <Route path="menu" element={<MenuIndex />} />
-          <Route path="master-menu" element={<Navigate to="../menu" replace />} />
+          <Route path="master-menu" element={<MenuIndex />} />
         </>
       )}
 

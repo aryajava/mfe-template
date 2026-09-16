@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -27,6 +28,7 @@ import {
   useLoading,
   useAuth,
   useEventBus,
+  useEventSubscription,
   MFE_EVENTS,
   cn,
   type PaginationConfig,
@@ -118,6 +120,13 @@ export const EkspedisiIndex: React.FC = () => {
     fetchCouriers();
   }, [fetchCouriers]);
 
+  // Reaktif terhadap perubahan ekspedisi
+  useEventSubscription(MFE_EVENTS.DATA_UPDATED, (payload: any) => {
+    if (payload?.entity === 'courier') {
+      fetchCouriers();
+    }
+  });
+
   const handleSort = (key: string) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
@@ -149,6 +158,7 @@ export const EkspedisiIndex: React.FC = () => {
           nextStatus ? 'aktifkan' : 'nonaktifkan'
         }.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'courier', action: 'status', id: statusModalTarget.id });
 
       setStatusModalTarget(null);
       fetchCouriers();
@@ -175,6 +185,7 @@ export const EkspedisiIndex: React.FC = () => {
         title: 'Ekspedisi Berhasil Dihapus',
         message: `Ekspedisi "${deleteModalTarget.name}" telah dihapus secara permanen.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'courier', action: 'delete', id: deleteModalTarget.id });
 
       setDeleteModalTarget(null);
       fetchCouriers();
@@ -193,20 +204,9 @@ export const EkspedisiIndex: React.FC = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header & Breadcrumb */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-1">
-            <Link to="/dashboard" className="hover:text-orange-600 transition-colors">
-              Beranda
-            </Link>
-            <span>/</span>
-            <Link to="/master" className="hover:text-orange-600 transition-colors">
-              Master
-            </Link>
-            <span>/</span>
-            <span className="text-orange-600 font-semibold">Ekspedisi</span>
-          </div>
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200/60 shadow-xs">
               <Truck className="h-6 w-6" />
@@ -259,16 +259,16 @@ export const EkspedisiIndex: React.FC = () => {
       </div>
 
       {/* Toolbar Filter & Search */}
-      <Card className="p-4 shadow-xs border border-gray-200 bg-white">
+      <Card className="p-4 sm:p-5 shadow-xs border border-gray-200/90 bg-white rounded-xl">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Search box using Input */}
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <div className="relative flex-1 min-w-0 w-full">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari mitra ekspedisi..."
-              className="pl-10 bg-gray-50 focus:bg-white w-full border-gray-200 focus:ring-orange-500"
+              className="pl-10 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
             />
             {searchTerm && (
               <button
@@ -288,7 +288,7 @@ export const EkspedisiIndex: React.FC = () => {
                 setSelectedStatus(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full h-10 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white text-gray-800 cursor-pointer"
+              className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
             >
               <option value="">Semua Status</option>
               <option value="true">Aktif</option>
@@ -305,7 +305,7 @@ export const EkspedisiIndex: React.FC = () => {
                 setSortConfig({ key, direction: direction as 'asc' | 'desc' });
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full h-10 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white text-gray-800 cursor-pointer"
+              className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800 cursor-pointer"
             >
               <option value="name-asc">Nama Ekspedisi (A - Z)</option>
               <option value="name-desc">Nama Ekspedisi (Z - A)</option>
@@ -348,7 +348,7 @@ export const EkspedisiIndex: React.FC = () => {
       )}
 
       {/* Data Table Card */}
-      <Card className="shadow-xs overflow-hidden border border-gray-200 bg-white">
+      <Card className="shadow-xs overflow-hidden border border-gray-200/90 bg-white rounded-xl">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-left text-sm text-gray-600">
             <thead className="bg-gray-50/80 border-b border-gray-200 text-xs uppercase font-semibold text-gray-700 tracking-wider">
@@ -605,8 +605,8 @@ export const EkspedisiIndex: React.FC = () => {
       </Card>
 
       {/* Modal Konfirmasi Ubah Status */}
-      {statusModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      {statusModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-gray-200 overflow-hidden">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -677,12 +677,13 @@ export const EkspedisiIndex: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Konfirmasi Hapus Permanen */}
-      {deleteModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      {deleteModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-red-200 overflow-hidden">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -736,7 +737,8 @@ export const EkspedisiIndex: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

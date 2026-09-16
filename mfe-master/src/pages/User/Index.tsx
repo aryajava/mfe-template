@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -15,11 +16,12 @@ import {
   ShieldAlert,
   Shield,
   KeyRound,
-  Lock,
-  Unlock,
   ToggleLeft,
   ToggleRight,
   Crown,
+  Eye,
+  EyeOff,
+  X,
 } from 'lucide-react';
 import {
   Button,
@@ -33,6 +35,7 @@ import {
   useLoading,
   useAuth,
   useEventBus,
+  useEventSubscription,
   MFE_EVENTS,
   cn,
   type PaginationConfig,
@@ -77,11 +80,10 @@ export const UserIndex: React.FC = () => {
 
   const [resetModalTarget, setResetModalTarget] = useState<UserItem | null>(null);
   const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const [deleteModalTarget, setDeleteModalTarget] = useState<UserItem | null>(null);
   const [activeModalTarget, setActiveModalTarget] = useState<UserItem | null>(null);
-  const [blockModalTarget, setBlockModalTarget] = useState<UserItem | null>(null);
-
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   // Debounce search
@@ -139,6 +141,13 @@ export const UserIndex: React.FC = () => {
     fetchUsers();
   }, [fetchUsers]);
 
+  // Reaktif terhadap perubahan data user
+  useEventSubscription(MFE_EVENTS.DATA_UPDATED, (payload: any) => {
+    if (payload?.entity === 'user') {
+      fetchUsers();
+    }
+  });
+
   // Sort handler
   const handleSort = (key: string) => {
     setSortConfig((prev) => ({
@@ -167,8 +176,10 @@ export const UserIndex: React.FC = () => {
       await userApi.changeRole(roleModalTarget.id, { role: newSelectedRole });
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
         type: 'success',
-        message: `Peran pengguna "${roleModalTarget.display}" berhasil diubah.`,
+        message: `Peran pengguna "${roleModalTarget.display}" berhasil diubah menjadi ${newSelectedRole}.`,
       });
+      publish(MFE_EVENTS.PERMISSIONS_UPDATED);
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'user', action: 'role', id: roleModalTarget.id });
       setRoleModalTarget(null);
       fetchUsers();
     } catch (err: any) {
@@ -187,7 +198,7 @@ export const UserIndex: React.FC = () => {
     if (newPassword.length < 6) {
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
         type: 'error',
-        message: 'Kata sandi minimal 6 karakter.',
+        message: 'Kata sandi baru minimal 6 karakter.',
       });
       return;
     }
@@ -202,6 +213,7 @@ export const UserIndex: React.FC = () => {
       });
       setResetModalTarget(null);
       setNewPassword('');
+      setShowPassword(false);
     } catch (err: any) {
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
         type: 'error',
@@ -223,43 +235,14 @@ export const UserIndex: React.FC = () => {
         type: 'success',
         message: `Status pengguna "${activeModalTarget.display}" berhasil diperbarui.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'user', action: 'status', id: activeModalTarget.id });
+      publish(MFE_EVENTS.PERMISSIONS_UPDATED);
       setActiveModalTarget(null);
       fetchUsers();
     } catch (err: any) {
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
         type: 'error',
         message: err?.message || 'Gagal mengubah status aktif pengguna.',
-      });
-    } finally {
-      setIsProcessingAction(false);
-      hideLoading();
-    }
-  };
-
-  const handleExecuteToggleBlock = async () => {
-    if (!blockModalTarget) return;
-    setIsProcessingAction(true);
-    showLoading();
-    try {
-      if (blockModalTarget.isBlocked) {
-        await userApi.unblock(blockModalTarget.id);
-        publish(MFE_EVENTS.NOTIFICATION_SHOW, {
-          type: 'success',
-          message: `Blokir pengguna "${blockModalTarget.display}" berhasil dibuka.`,
-        });
-      } else {
-        await userApi.block(blockModalTarget.id);
-        publish(MFE_EVENTS.NOTIFICATION_SHOW, {
-          type: 'success',
-          message: `Pengguna "${blockModalTarget.display}" berhasil diblokir.`,
-        });
-      }
-      setBlockModalTarget(null);
-      fetchUsers();
-    } catch (err: any) {
-      publish(MFE_EVENTS.NOTIFICATION_SHOW, {
-        type: 'error',
-        message: err?.message || 'Gagal mengubah status blokir pengguna.',
       });
     } finally {
       setIsProcessingAction(false);
@@ -277,6 +260,8 @@ export const UserIndex: React.FC = () => {
         type: 'success',
         message: `Pengguna "${deleteModalTarget.display}" berhasil dihapus.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'user', action: 'delete', id: deleteModalTarget.id });
+      publish(MFE_EVENTS.PERMISSIONS_UPDATED);
       setDeleteModalTarget(null);
       fetchUsers();
     } catch (err: any) {
@@ -311,67 +296,112 @@ export const UserIndex: React.FC = () => {
     const r = role.toUpperCase();
     if (r === 'SA') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-          <Crown className="w-3 h-3 text-purple-600" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+          <Crown className="w-3.5 h-3.5 text-purple-600" />
           <span>Super Admin</span>
         </span>
       );
     }
     if (r === 'OWNER') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-          <ShieldCheck className="w-3 h-3 text-amber-600" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
           <span>Pemilik Toko</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-        <Shield className="w-3 h-3 text-blue-600" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+        <Shield className="w-3.5 h-3.5 text-blue-600" />
         <span>Admin Toko</span>
       </span>
     );
   };
 
+  const hasActiveFilters = Boolean(searchTerm || selectedRole || selectedStatus !== '');
+
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <UserCog className="w-6 h-6 text-orange-600" />
-            Master User
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Kelola data staf toko, pembagian peran akses, dan keamanan akun internal.
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200/60 shadow-xs">
+              <UserCog className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Master User
+                </h1>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 tabular-nums">
+                  {pagination.total} User Staf
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Kelola data staf toko, pembagian peran akses, dan keamanan akun internal.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {canCreate && (
-          <Button
-            onClick={() => navigate('/master/user/tambah')}
-            className="bg-orange-600 hover:bg-orange-700 text-white shadow-sm flex items-center gap-2 h-10 px-4 rounded-lg self-start sm:self-auto cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah User</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchUsers()}
+                className="gap-1.5 cursor-pointer text-xs h-9 px-3"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                <span>Muat Ulang</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Ambil data staf terbaru dari server</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {canCreate && (
+            <Button
+              asChild
+              size="sm"
+              className="gap-2 bg-orange-600 hover:bg-orange-700 text-white shadow-xs cursor-pointer text-xs h-9 px-3.5"
+            >
+              <Link to="/master/user/tambah">
+                <Plus className="w-4 h-4" />
+                <span>Tambah User</span>
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filter Toolbar */}
-      <Card className="border border-gray-200 shadow-sm rounded-xl">
+      <Card className="border border-gray-200/90 bg-white shadow-xs rounded-xl overflow-hidden">
         <CardContent className="p-4 sm:p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* Search Input */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Search Input with Clear Button */}
             <div className="lg:col-span-2 relative">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10 pointer-events-none" />
                 <Input
                   placeholder="Cari username atau nama tampilan..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-10 text-sm bg-white"
+                  className="pl-10 pr-9 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer"
+                    title="Hapus pencarian"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -383,7 +413,7 @@ export const UserIndex: React.FC = () => {
                   setSelectedRole(e.target.value);
                   setPagination((prev) => ({ ...prev, page: 1 }));
                 }}
-                className="w-full h-10 px-3 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-700"
+                className="w-full h-10 px-3 text-sm bg-white hover:bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 transition-colors cursor-pointer"
               >
                 <option value="">Semua Peran</option>
                 <option value="SA">Super Admin</option>
@@ -400,27 +430,44 @@ export const UserIndex: React.FC = () => {
                   setSelectedStatus(e.target.value);
                   setPagination((prev) => ({ ...prev, page: 1 }));
                 }}
-                className="w-full h-10 px-3 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-700"
+                className="w-full h-10 px-3 text-sm bg-white hover:bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 transition-colors cursor-pointer"
               >
                 <option value="">Semua Status</option>
-                <option value="true">Aktif</option>
-                <option value="false">Nonaktif</option>
+                <option value="true">Status: Aktif</option>
+                <option value="false">Status: Nonaktif</option>
               </select>
             </div>
           </div>
 
-          {/* Reset Filter Action */}
-          {(searchTerm || selectedRole || selectedStatus !== '') && (
+          {/* Reset Filter Action Bar */}
+          {hasActiveFilters && (
             <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-xs">
-              <span className="text-gray-500">Filter aktif diterapkan</span>
+              <div className="flex items-center gap-2 text-gray-600 flex-wrap">
+                <span className="font-medium">Filter aktif:</span>
+                {debouncedSearch && (
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-800 text-[11px] font-mono">
+                    "{debouncedSearch}"
+                  </span>
+                )}
+                {selectedRole !== '' && (
+                  <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[11px] font-medium border border-blue-200/50">
+                    Peran: {selectedRole}
+                  </span>
+                )}
+                {selectedStatus !== '' && (
+                  <span className="px-2 py-0.5 rounded bg-orange-50 text-orange-700 text-[11px] font-medium border border-orange-200/50">
+                    Status: {selectedStatus === 'true' ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleResetFilter}
-                className="h-7 px-2 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                className="h-7 px-2.5 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 gap-1 cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                Reset Filter
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Filter</span>
               </Button>
             </div>
           )}
@@ -428,18 +475,18 @@ export const UserIndex: React.FC = () => {
       </Card>
 
       {/* Main Table Container */}
-      <Card className="border border-gray-200 shadow-sm rounded-xl overflow-hidden">
+      <Card className="border border-gray-200/90 bg-white shadow-xs rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50/75 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider select-none">
+            <thead className="bg-gray-50/90 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider select-none">
               <tr>
-                <th className="py-3.5 px-4 w-12 text-center">No</th>
+                <th className="py-3.5 px-4 w-14 text-center">No</th>
                 <th
                   onClick={() => handleSort('username')}
                   className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Username</span>
+                    <span>Pengguna</span>
                     <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
                   </div>
                 </th>
@@ -457,7 +504,7 @@ export const UserIndex: React.FC = () => {
                   className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors text-center"
                 >
                   <div className="flex items-center justify-center gap-1.5">
-                    <span>Peran</span>
+                    <span>Peran Akses</span>
                     <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
                   </div>
                 </th>
@@ -494,7 +541,7 @@ export const UserIndex: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={fetchUsers}
-                        className="mt-2 text-xs"
+                        className="mt-2 text-xs cursor-pointer"
                       >
                         Coba Lagi
                       </Button>
@@ -508,9 +555,9 @@ export const UserIndex: React.FC = () => {
                       <UserCog className="w-10 h-10 text-gray-300 stroke-[1.5]" />
                       <p className="text-sm font-medium text-gray-700">Tidak ada user ditemukan</p>
                       <p className="text-xs text-gray-500 max-w-sm">
-                        {searchTerm || selectedRole || selectedStatus
+                        {hasActiveFilters
                           ? 'Coba sesuaikan kata kunci pencarian atau bersihkan filter yang aktif.'
-                          : 'Belum ada pengguna staf yang terdaftar pada sistem.'}
+                          : 'Belum ada akun pengguna staf yang terdaftar pada sistem.'}
                       </p>
                     </div>
                   </td>
@@ -518,6 +565,8 @@ export const UserIndex: React.FC = () => {
               ) : (
                 users.map((u, idx) => {
                   const rowNumber = (pagination.page - 1) * pagination.pageSize + idx + 1;
+                  const initialChar = (u.displayName || u.username || 'U').charAt(0).toUpperCase();
+
                   return (
                     <tr
                       key={u.id}
@@ -526,12 +575,20 @@ export const UserIndex: React.FC = () => {
                         u.isBlocked && 'bg-red-50/20'
                       )}
                     >
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono">
+                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono tabular-nums">
                         {rowNumber}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-semibold text-gray-900 font-mono text-xs">
-                          {u.username}
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-orange-50 border border-orange-200/60 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0">
+                            {initialChar}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900 font-mono text-xs">
+                              {u.username}
+                            </div>
+                            <div className="text-[11px] text-gray-400 font-mono tabular-nums">ID: #{u.id}</div>
+                          </div>
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
@@ -543,25 +600,25 @@ export const UserIndex: React.FC = () => {
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           {u.isBlocked && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
                               <ShieldAlert className="w-3 h-3 text-red-600" />
                               <span>Diblokir</span>
                             </span>
                           )}
                           {u.isActive ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                               <span>Aktif</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
                               <XCircle className="w-3 h-3 text-gray-500" />
                               <span>Nonaktif</span>
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-500">
+                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono tabular-nums">
                         {formatDate(u.lastLoginAt)}
                       </td>
                       <td className="py-3.5 px-4 text-center">
@@ -618,6 +675,7 @@ export const UserIndex: React.FC = () => {
                                     onClick={() => {
                                       setResetModalTarget(u);
                                       setNewPassword('');
+                                      setShowPassword(false);
                                     }}
                                     className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
                                   >
@@ -691,14 +749,14 @@ export const UserIndex: React.FC = () => {
           <div className="py-3.5 px-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
             <div>
               Menampilkan{' '}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-gray-900 tabular-nums">
                 {(pagination.page - 1) * pagination.pageSize + 1}
               </span>{' '}
               sampai{' '}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-gray-900 tabular-nums">
                 {Math.min(pagination.page * pagination.pageSize, pagination.total)}
               </span>{' '}
-              dari <span className="font-semibold text-gray-900">{pagination.total}</span> data
+              dari <span className="font-semibold text-gray-900 tabular-nums">{pagination.total}</span> data
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -711,7 +769,7 @@ export const UserIndex: React.FC = () => {
               >
                 Sebelumnya
               </Button>
-              <div className="px-2 font-medium text-gray-700">
+              <div className="px-2 font-medium text-gray-700 tabular-nums">
                 Halaman {pagination.page} dari {totalPages}
               </div>
               <Button
@@ -729,37 +787,45 @@ export const UserIndex: React.FC = () => {
       </Card>
 
       {/* Modal: Ganti Peran Akses */}
-      {roleModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-purple-600 mb-3">
-              <div className="p-2 bg-purple-50 rounded-lg">
+      {roleModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-purple-600 mb-4">
+              <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100">
                 <Shield className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Ubah Peran Pengguna</h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Ubah Peran Pengguna</h3>
+                <p className="text-xs text-gray-500">Sesuaikan tingkat wewenang akun internal</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Pilih peran wewenang baru untuk user{' '}
-              <span className="font-semibold text-gray-900">{roleModalTarget.display}</span>.
-            </p>
-            <div className="mb-6">
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Peran Baru</label>
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pengguna:</div>
+              <div className="font-semibold text-gray-900 text-sm">{roleModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">Username: {roleModalTarget.username}</div>
+            </div>
+
+            <div className="mb-6 space-y-1.5">
+              <label className="block text-xs font-semibold text-gray-700">Peran Baru</label>
               <select
                 value={newSelectedRole}
                 onChange={(e) => setNewSelectedRole(e.target.value)}
-                className="w-full h-10 px-3 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700"
+                className="w-full h-10 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 cursor-pointer"
               >
                 <option value="ADMIN">Admin Toko (Operasional & Katalog)</option>
                 <option value="OWNER">Pemilik Toko (Manajemen Lengkap Toko)</option>
                 <option value="SA">Super Admin (Akses Penuh Sistem)</option>
               </select>
             </div>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={() => setRoleModalTarget(null)}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -767,39 +833,62 @@ export const UserIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction || newSelectedRole === roleModalTarget.role}
                 onClick={handleExecuteChangeRole}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-purple-600 hover:bg-purple-700 text-white cursor-pointer"
               >
                 {isProcessingAction ? 'Memproses...' : 'Simpan Peran'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal: Reset Password */}
-      {resetModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-amber-600 mb-3">
-              <div className="p-2 bg-amber-50 rounded-lg">
+      {resetModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-amber-600 mb-4">
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100">
                 <KeyRound className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Reset Kata Sandi User</h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Reset Kata Sandi User</h3>
+                <p className="text-xs text-gray-500">Tetapkan kata sandi baru untuk staf</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Masukkan kata sandi baru untuk user{' '}
-              <span className="font-semibold text-gray-900">{resetModalTarget.display}</span> (minimal 6 karakter).
-            </p>
-            <div className="mb-6">
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Kata Sandi Baru</label>
-              <Input
-                type="password"
-                placeholder="Masukkan kata sandi baru..."
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="h-10 text-sm"
-              />
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pengguna:</div>
+              <div className="font-semibold text-gray-900 text-sm">{resetModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">Username: {resetModalTarget.username}</div>
             </div>
+
+            <div className="mb-6 space-y-1.5">
+              <label className="block text-xs font-semibold text-gray-700">
+                Kata Sandi Baru <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Minimal 6 karakter..."
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="h-10 text-sm pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  title={showPassword ? 'Sembunyikan sandi' : 'Lihat sandi'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-400">
+                Gunakan minimal 6 karakter kombinasi yang aman.
+              </p>
+            </div>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
@@ -808,7 +897,9 @@ export const UserIndex: React.FC = () => {
                 onClick={() => {
                   setResetModalTarget(null);
                   setNewPassword('');
+                  setShowPassword(false);
                 }}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -816,37 +907,50 @@ export const UserIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction || newPassword.length < 6}
                 onClick={handleExecuteResetPassword}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                className="bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
               >
                 {isProcessingAction ? 'Memproses...' : 'Simpan Kata Sandi'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal: Toggle Status Aktif */}
-      {activeModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-amber-600 mb-3">
-              <div className="p-2 bg-amber-50 rounded-lg">
+      {activeModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-amber-600 mb-4">
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100">
                 <AlertCircle className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">
-                {activeModalTarget.isActive ? 'Nonaktifkan User' : 'Aktifkan User'}
-              </h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">
+                  {activeModalTarget.isActive ? 'Nonaktifkan Akun Staf' : 'Aktifkan Akun Staf'}
+                </h3>
+                <p className="text-xs text-gray-500">Ubah status aktif login pengguna</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pengguna:</div>
+              <div className="font-semibold text-gray-900 text-sm">{activeModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">Username: {activeModalTarget.username}</div>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-6 leading-relaxed">
               Apakah Anda yakin ingin {activeModalTarget.isActive ? 'menonaktifkan' : 'mengaktifkan kembali'}{' '}
-              user <span className="font-semibold text-gray-900">{activeModalTarget.display}</span>?
+              akun pengguna staf ini?
             </p>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={() => setActiveModalTarget(null)}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -854,36 +958,47 @@ export const UserIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={handleExecuteToggleActive}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className="bg-orange-600 hover:bg-orange-700 text-white cursor-pointer"
               >
-                {isProcessingAction ? 'Memproses...' : 'Konfirmasi'}
+                {isProcessingAction ? 'Memproses...' : 'Konfirmasi Perubahan'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal: Hapus User */}
-      {deleteModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-red-600 mb-3">
-              <div className="p-2 bg-red-50 rounded-lg">
+      {deleteModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <div className="p-2.5 bg-red-50 rounded-xl border border-red-100">
                 <Trash2 className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Hapus User</h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Hapus Akun Pengguna</h3>
+                <p className="text-xs text-gray-500">Tindakan ini permanen dan tidak dapat dibatalkan</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Apakah Anda yakin ingin menghapus user{' '}
-              <span className="font-semibold text-gray-900">{deleteModalTarget.display}</span> secara permanen?
-              Tindakan ini tidak dapat dibatalkan.
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pengguna:</div>
+              <div className="font-semibold text-gray-900 text-sm">{deleteModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">Username: {deleteModalTarget.username}</div>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-6 leading-relaxed">
+              Apakah Anda yakin ingin menghapus akun staf ini dari database? Seluruh wewenang akses akan dicabut selamanya.
             </p>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={() => setDeleteModalTarget(null)}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -892,12 +1007,14 @@ export const UserIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={handleExecuteDelete}
+                className="cursor-pointer"
               >
-                {isProcessingAction ? 'Memproses...' : 'Hapus Permanen'}
+                {isProcessingAction ? 'Memproses...' : 'Ya, Hapus Pengguna'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

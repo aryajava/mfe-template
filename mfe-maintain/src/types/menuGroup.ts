@@ -5,6 +5,7 @@ export interface MenuGroupItem {
   urlPrefix: string;
   sortOrder: number;
   icon?: string | null;
+  mfeKey?: string | null;
   isActive: boolean;
   menuCount: number;
   createdAt?: string;
@@ -18,6 +19,7 @@ export interface CreateMenuGroupInput {
   groupCode: string;
   groupName: string;
   urlPrefix?: string;
+  mfeKey?: string | null;
   sortOrder?: number;
   icon?: string | null;
 }
@@ -25,6 +27,7 @@ export interface CreateMenuGroupInput {
 export interface UpdateMenuGroupInput {
   groupName: string;
   urlPrefix?: string;
+  mfeKey?: string | null;
   sortOrder?: number;
   icon?: string | null;
   version: number;

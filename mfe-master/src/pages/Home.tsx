@@ -191,11 +191,6 @@ export const Home: React.FC = () => {
       {/* Header Utama & Status Sesi Aktif */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-200/80">
         <div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-1">
-            <span>Beranda</span>
-            <span className="text-gray-300">/</span>
-            <span className="text-orange-600 font-semibold">Master Data Hub</span>
-          </div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
               Pusat Data Master Toko

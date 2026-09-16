@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import {
   Search,
   Users,
@@ -8,18 +10,19 @@ import {
   XCircle,
   ArrowUpDown,
   ShieldAlert,
-  ShieldCheck,
   Lock,
   Unlock,
   KeyRound,
   LogOut,
   UserX,
   UserCheck,
+  Eye,
+  EyeOff,
+  X,
 } from 'lucide-react';
 import {
   Button,
   Input,
-  SearchNotification,
   Card,
   CardContent,
   Tooltip,
@@ -29,6 +32,7 @@ import {
   useLoading,
   useAuth,
   useEventBus,
+  useEventSubscription,
   MFE_EVENTS,
   cn,
   type PaginationConfig,
@@ -71,6 +75,7 @@ export const PelangganIndex: React.FC = () => {
   const [activeModalTarget, setActiveModalTarget] = useState<CustomerItem | null>(null);
   const [resetModalTarget, setResetModalTarget] = useState<CustomerItem | null>(null);
   const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [releaseModalTarget, setReleaseModalTarget] = useState<CustomerItem | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
@@ -129,6 +134,13 @@ export const PelangganIndex: React.FC = () => {
     fetchCustomers();
   }, [fetchCustomers]);
 
+  // Reaktif terhadap perubahan data pelanggan
+  useEventSubscription(MFE_EVENTS.DATA_UPDATED, (payload: any) => {
+    if (payload?.entity === 'customer') {
+      fetchCustomers();
+    }
+  });
+
   // Sorting handler
   const handleSort = (key: string) => {
     setSortConfig((prev) => ({
@@ -159,6 +171,7 @@ export const PelangganIndex: React.FC = () => {
         type: 'success',
         message: `Pelanggan "${blockModalTarget.display}" berhasil diblokir.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'customer', action: 'block', id: blockModalTarget.id });
       setBlockModalTarget(null);
       fetchCustomers();
     } catch (err: any) {
@@ -182,6 +195,7 @@ export const PelangganIndex: React.FC = () => {
         type: 'success',
         message: `Blokir pelanggan "${unblockModalTarget.display}" berhasil dibuka.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'customer', action: 'unblock', id: unblockModalTarget.id });
       setUnblockModalTarget(null);
       fetchCustomers();
     } catch (err: any) {
@@ -213,6 +227,7 @@ export const PelangganIndex: React.FC = () => {
           message: `Pelanggan "${activeModalTarget.display}" diaktifkan kembali.`,
         });
       }
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'customer', action: 'status', id: activeModalTarget.id });
       setActiveModalTarget(null);
       fetchCustomers();
     } catch (err: any) {
@@ -246,6 +261,7 @@ export const PelangganIndex: React.FC = () => {
       });
       setResetModalTarget(null);
       setNewPassword('');
+      setShowPassword(false);
     } catch (err: any) {
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
         type: 'error',
@@ -293,35 +309,77 @@ export const PelangganIndex: React.FC = () => {
     }
   };
 
+  const hasActiveFilters = Boolean(searchTerm || selectedStatus !== '' || selectedBlocked !== '');
+
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <Users className="w-6 h-6 text-orange-600" />
-            Master Pelanggan
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Kelola status akun, keamanan sesi, dan pemblokiran pelanggan toko.
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200/60 shadow-xs">
+              <Users className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Master Pelanggan
+                </h1>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 tabular-nums">
+                  {pagination.total} Pelanggan
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Kelola status akun, keamanan sesi, dan pemblokiran pelanggan toko secara terpusat.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchCustomers()}
+                className="gap-1.5 cursor-pointer text-xs h-9 px-3"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
+                <span>Muat Ulang</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Ambil data pelanggan terbaru dari server</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <Card className="border border-gray-200 shadow-sm rounded-xl">
+      {/* Filter Toolbar Card */}
+      <Card className="border border-gray-200/90 bg-white shadow-xs rounded-xl overflow-hidden">
         <CardContent className="p-4 sm:p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* Search Input */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Search Input with Clear Button */}
             <div className="lg:col-span-2 relative">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10 pointer-events-none" />
                 <Input
                   placeholder="Cari email, nama, atau no. HP..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-10 text-sm bg-white"
+                  className="pl-10 pr-9 h-10 text-sm bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:ring-2 focus:ring-orange-500 w-full"
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer"
+                    title="Hapus pencarian"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -333,11 +391,11 @@ export const PelangganIndex: React.FC = () => {
                   setSelectedStatus(e.target.value);
                   setPagination((prev) => ({ ...prev, page: 1 }));
                 }}
-                className="w-full h-10 px-3 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-700"
+                className="w-full h-10 px-3 text-sm bg-white hover:bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 transition-colors cursor-pointer"
               >
                 <option value="">Semua Status Akun</option>
-                <option value="true">Aktif</option>
-                <option value="false">Nonaktif</option>
+                <option value="true">Akun Aktif</option>
+                <option value="false">Akun Nonaktif</option>
               </select>
             </div>
 
@@ -349,55 +407,72 @@ export const PelangganIndex: React.FC = () => {
                   setSelectedBlocked(e.target.value);
                   setPagination((prev) => ({ ...prev, page: 1 }));
                 }}
-                className="w-full h-10 px-3 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-700"
+                className="w-full h-10 px-3 text-sm bg-white hover:bg-white focus:bg-white border border-gray-200 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 transition-colors cursor-pointer"
               >
                 <option value="">Semua Status Blokir</option>
-                <option value="true">Diblokir</option>
-                <option value="false">Tidak Diblokir</option>
+                <option value="true">Status: Diblokir</option>
+                <option value="false">Status: Tidak Diblokir</option>
               </select>
             </div>
           </div>
 
-          {/* Reset Filter Action */}
-          {(searchTerm || selectedStatus !== '' || selectedBlocked !== '') && (
+          {/* Reset Filter Action Bar */}
+          {hasActiveFilters && (
             <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-xs">
-              <span className="text-gray-500">Filter aktif diterapkan</span>
+              <div className="flex items-center gap-2 text-gray-600">
+                <span className="font-medium">Filter aktif:</span>
+                {debouncedSearch && (
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-800 text-[11px] font-mono">
+                    "{debouncedSearch}"
+                  </span>
+                )}
+                {selectedStatus !== '' && (
+                  <span className="px-2 py-0.5 rounded bg-orange-50 text-orange-700 text-[11px] font-medium border border-orange-200/50">
+                    Status: {selectedStatus === 'true' ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                )}
+                {selectedBlocked !== '' && (
+                  <span className="px-2 py-0.5 rounded bg-red-50 text-red-700 text-[11px] font-medium border border-red-200/50">
+                    Blokir: {selectedBlocked === 'true' ? 'Diblokir' : 'Normal'}
+                  </span>
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleResetFilter}
-                className="h-7 px-2 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                className="h-7 px-2.5 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 gap-1 cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                Reset Filter
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Filter</span>
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Main Table Container */}
-      <Card className="border border-gray-200 shadow-sm rounded-xl overflow-hidden">
+      {/* Main Table Card */}
+      <Card className="border border-gray-200/90 bg-white shadow-xs rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50/75 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider select-none">
+            <thead className="bg-gray-50/90 border-b border-gray-200 text-xs font-semibold text-gray-700 uppercase tracking-wider select-none">
               <tr>
-                <th className="py-3.5 px-4 w-12 text-center">No</th>
-                <th
-                  onClick={() => handleSort('email')}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Email</span>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                </th>
+                <th className="py-3.5 px-4 w-14 text-center">No</th>
                 <th
                   onClick={() => handleSort('name')}
                   className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Nama Pelanggan</span>
+                    <span>Pelanggan</span>
+                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('email')}
+                  className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Email Akun</span>
                     <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
                   </div>
                 </th>
@@ -435,7 +510,7 @@ export const PelangganIndex: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={fetchCustomers}
-                        className="mt-2 text-xs"
+                        className="mt-2 text-xs cursor-pointer"
                       >
                         Coba Lagi
                       </Button>
@@ -449,9 +524,9 @@ export const PelangganIndex: React.FC = () => {
                       <Users className="w-10 h-10 text-gray-300 stroke-[1.5]" />
                       <p className="text-sm font-medium text-gray-700">Tidak ada pelanggan ditemukan</p>
                       <p className="text-xs text-gray-500 max-w-sm">
-                        {searchTerm || selectedStatus || selectedBlocked
+                        {hasActiveFilters
                           ? 'Coba sesuaikan kata kunci pencarian atau bersihkan filter yang aktif.'
-                          : 'Belum ada data pelanggan yang terdaftar pada sistem.'}
+                          : 'Belum ada data pelanggan yang terdaftar pada sistem toko.'}
                       </p>
                     </div>
                   </td>
@@ -459,6 +534,8 @@ export const PelangganIndex: React.FC = () => {
               ) : (
                 customers.map((c, idx) => {
                   const rowNumber = (pagination.page - 1) * pagination.pageSize + idx + 1;
+                  const initialChar = (c.name || c.email || 'P').charAt(0).toUpperCase();
+
                   return (
                     <tr
                       key={c.id}
@@ -467,40 +544,48 @@ export const PelangganIndex: React.FC = () => {
                         c.isBlocked && 'bg-red-50/20'
                       )}
                     >
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono">
+                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono tabular-nums">
                         {rowNumber}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-medium text-gray-900">{c.email}</div>
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-orange-50 border border-orange-200/60 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0">
+                            {initialChar}
+                          </div>
+                          <div>
+                            <div className="text-gray-900 font-semibold">{c.name || 'Pelanggan Toko'}</div>
+                            <div className="text-xs text-gray-400 font-mono tabular-nums">ID: #{c.id}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="text-gray-900 font-medium">{c.name || '-'}</div>
+                        <div className="text-gray-800 font-medium text-xs font-mono">{c.email}</div>
                       </td>
-                      <td className="py-3.5 px-4 text-gray-600 font-mono text-xs">
+                      <td className="py-3.5 px-4 text-gray-600 font-mono text-xs tabular-nums">
                         {c.phone || '-'}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           {c.isBlocked && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
                               <ShieldAlert className="w-3 h-3 text-red-600" />
                               <span>Diblokir</span>
                             </span>
                           )}
                           {c.isActive ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                               <span>Aktif</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
                               <XCircle className="w-3 h-3 text-gray-500" />
                               <span>Nonaktif</span>
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center text-xs text-gray-500">
+                      <td className="py-3.5 px-4 text-center text-xs text-gray-500 font-mono tabular-nums">
                         {formatDate(c.createdAt)}
                       </td>
                       <td className="py-3.5 px-4 text-center">
@@ -546,6 +631,7 @@ export const PelangganIndex: React.FC = () => {
                                     onClick={() => {
                                       setResetModalTarget(c);
                                       setNewPassword('');
+                                      setShowPassword(false);
                                     }}
                                     className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
                                   >
@@ -619,14 +705,14 @@ export const PelangganIndex: React.FC = () => {
           <div className="py-3.5 px-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
             <div>
               Menampilkan{' '}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-gray-900 tabular-nums">
                 {(pagination.page - 1) * pagination.pageSize + 1}
               </span>{' '}
               sampai{' '}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-gray-900 tabular-nums">
                 {Math.min(pagination.page * pagination.pageSize, pagination.total)}
               </span>{' '}
-              dari <span className="font-semibold text-gray-900">{pagination.total}</span> data
+              dari <span className="font-semibold text-gray-900 tabular-nums">{pagination.total}</span> data
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -639,7 +725,7 @@ export const PelangganIndex: React.FC = () => {
               >
                 Sebelumnya
               </Button>
-              <div className="px-2 font-medium text-gray-700">
+              <div className="px-2 font-medium text-gray-700 tabular-nums">
                 Halaman {pagination.page} dari {totalPages}
               </div>
               <Button
@@ -657,26 +743,36 @@ export const PelangganIndex: React.FC = () => {
       </Card>
 
       {/* Modal: Blokir Pelanggan */}
-      {blockModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-red-600 mb-3">
-              <div className="p-2 bg-red-50 rounded-lg">
+      {blockModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <div className="p-2.5 bg-red-50 rounded-xl border border-red-100">
                 <Lock className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Blokir Pelanggan</h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Blokir Pelanggan</h3>
+                <p className="text-xs text-gray-500">Batasi hak checkout transaksi pelanggan</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Apakah Anda yakin ingin memblokir pelanggan{' '}
-              <span className="font-semibold text-gray-900">{blockModalTarget.display}</span>?
-              Pelanggan yang diblokir tidak akan dapat melakukan checkout atau memesan produk toko.
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pelanggan:</div>
+              <div className="font-semibold text-gray-900 text-sm">{blockModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">{blockModalTarget.email}</div>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-6 leading-relaxed">
+              Pelanggan yang diblokir tidak akan dapat melakukan checkout atau memesan produk toko sampai blokir dibuka kembali.
             </p>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={() => setBlockModalTarget(null)}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -685,35 +781,47 @@ export const PelangganIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={handleExecuteBlock}
+                className="cursor-pointer"
               >
-                {isProcessingAction ? 'Memproses...' : 'Ya, Blokir'}
+                {isProcessingAction ? 'Memproses...' : 'Ya, Blokir Pelanggan'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal: Buka Blokir Pelanggan */}
-      {unblockModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-emerald-600 mb-3">
-              <div className="p-2 bg-emerald-50 rounded-lg">
+      {unblockModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-emerald-600 mb-4">
+              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
                 <Unlock className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Buka Blokir Pelanggan</h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Buka Blokir Pelanggan</h3>
+                <p className="text-xs text-gray-500">Pulihkan hak bertransaksi normal</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Buka kembali akses untuk pelanggan{' '}
-              <span className="font-semibold text-gray-900">{unblockModalTarget.display}</span>?
-              Pelanggan akan kembali dapat melakukan transaksi secara normal.
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pelanggan:</div>
+              <div className="font-semibold text-gray-900 text-sm">{unblockModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">{unblockModalTarget.email}</div>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-6 leading-relaxed">
+              Pelanggan akan kembali dapat berbelanja dan melakukan pembayaran pesanan di toko Anda.
             </p>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={() => setUnblockModalTarget(null)}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -721,37 +829,50 @@ export const PelangganIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={handleExecuteUnblock}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
               >
                 {isProcessingAction ? 'Memproses...' : 'Buka Blokir'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal: Ubah Status Aktif/Nonaktif */}
-      {activeModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-amber-600 mb-3">
-              <div className="p-2 bg-amber-50 rounded-lg">
+      {activeModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-amber-600 mb-4">
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100">
                 <AlertCircle className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">
-                {activeModalTarget.isActive ? 'Nonaktifkan Pelanggan' : 'Aktifkan Pelanggan'}
-              </h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">
+                  {activeModalTarget.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Kembali Akun'}
+                </h3>
+                <p className="text-xs text-gray-500">Ubah status operasional akun pelanggan</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pelanggan:</div>
+              <div className="font-semibold text-gray-900 text-sm">{activeModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">{activeModalTarget.email}</div>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-6 leading-relaxed">
               Apakah Anda yakin ingin {activeModalTarget.isActive ? 'menonaktifkan' : 'mengaktifkan kembali'}{' '}
-              akun pelanggan <span className="font-semibold text-gray-900">{activeModalTarget.display}</span>?
+              akun pelanggan ini? Akun nonaktif tidak dapat masuk ke aplikasi.
             </p>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={() => setActiveModalTarget(null)}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -759,39 +880,62 @@ export const PelangganIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={handleExecuteToggleActive}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className="bg-orange-600 hover:bg-orange-700 text-white cursor-pointer"
               >
-                {isProcessingAction ? 'Memproses...' : 'Konfirmasi'}
+                {isProcessingAction ? 'Memproses...' : 'Konfirmasi Perubahan'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal: Reset Kata Sandi */}
-      {resetModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-amber-600 mb-3">
-              <div className="p-2 bg-amber-50 rounded-lg">
+      {resetModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-amber-600 mb-4">
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100">
                 <KeyRound className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Reset Kata Sandi Pelanggan</h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Reset Kata Sandi Pelanggan</h3>
+                <p className="text-xs text-gray-500">Tetapkan kata sandi baru untuk pelanggan</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Masukkan kata sandi baru untuk akun{' '}
-              <span className="font-semibold text-gray-900">{resetModalTarget.display}</span> (minimal 6 karakter).
-            </p>
-            <div className="mb-6">
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Kata Sandi Baru</label>
-              <Input
-                type="password"
-                placeholder="Masukkan kata sandi baru..."
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="h-10 text-sm"
-              />
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pelanggan:</div>
+              <div className="font-semibold text-gray-900 text-sm">{resetModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">{resetModalTarget.email}</div>
             </div>
+
+            <div className="mb-6 space-y-1.5">
+              <label className="block text-xs font-semibold text-gray-700">
+                Kata Sandi Baru <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Minimal 6 karakter..."
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="h-10 text-sm pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  title={showPassword ? 'Sembunyikan sandi' : 'Lihat sandi'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-400">
+                Gunakan minimal 6 karakter kombinasi yang aman.
+              </p>
+            </div>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
@@ -800,7 +944,9 @@ export const PelangganIndex: React.FC = () => {
                 onClick={() => {
                   setResetModalTarget(null);
                   setNewPassword('');
+                  setShowPassword(false);
                 }}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -808,36 +954,47 @@ export const PelangganIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction || newPassword.length < 6}
                 onClick={handleExecuteResetPassword}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                className="bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
               >
                 {isProcessingAction ? 'Memproses...' : 'Simpan Kata Sandi'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal: Lepas Sesi Aktif */}
-      {releaseModalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-blue-600 mb-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
+      {releaseModalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-blue-600 mb-4">
+              <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-100">
                 <LogOut className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Lepas Sesi Pelanggan</h3>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Lepas Sesi Pelanggan</h3>
+                <p className="text-xs text-gray-500">Putuskan login aktif di semua perangkat</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Lepas sesi login aktif untuk pelanggan{' '}
-              <span className="font-semibold text-gray-900">{releaseModalTarget.display}</span>?
-              Pelanggan akan diminta login ulang di perangkat mereka.
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-100 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 font-medium">Target Pelanggan:</div>
+              <div className="font-semibold text-gray-900 text-sm">{releaseModalTarget.display}</div>
+              <div className="text-xs text-gray-500 font-mono">{releaseModalTarget.email}</div>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-6 leading-relaxed">
+              Pelanggan akan secara otomatis dikeluarkan dari akun di seluruh browser atau aplikasi yang sedang aktif dan harus login kembali.
             </p>
+
             <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={() => setReleaseModalTarget(null)}
+                className="cursor-pointer"
               >
                 Batal
               </Button>
@@ -845,13 +1002,14 @@ export const PelangganIndex: React.FC = () => {
                 size="sm"
                 disabled={isProcessingAction}
                 onClick={handleExecuteReleaseSession}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
               >
-                {isProcessingAction ? 'Memproses...' : 'Lepas Sesi'}
+                {isProcessingAction ? 'Memproses...' : 'Lepas Sesi Sekarang'}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

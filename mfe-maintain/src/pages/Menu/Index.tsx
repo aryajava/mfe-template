@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import {
   Box,
   Search,
@@ -25,7 +27,9 @@ import {
   LoadingSpinner,
   useAuth,
   useEventBus,
+  useEventSubscription,
   MFE_EVENTS,
+  resolveLucideIcon,
 } from '@template/shared';
 import { menuApi } from '../../services/menuApi';
 import { menuGroupApi } from '../../services/menuGroupApi';
@@ -103,6 +107,13 @@ export const MenuIndex: React.FC = () => {
     loadData();
   }, [loadData]);
 
+  // Reaktif terhadap perubahan menu dan grup menu
+  useEventSubscription(MFE_EVENTS.DATA_UPDATED, (payload: any) => {
+    if (payload?.entity === 'menu' || payload?.entity === 'menu-group') {
+      loadData();
+    }
+  });
+
   // Filtering Logic
   const filteredMenus = useMemo(() => {
     return menus.filter((m) => {
@@ -140,7 +151,7 @@ export const MenuIndex: React.FC = () => {
       menuName: '',
       urlPrefix: '',
       sortOrder: (menus.length + 1) * 10,
-      icon: 'description',
+      icon: 'Box',
     });
     setFormErrors({});
     setIsFormModalOpen(true);
@@ -235,6 +246,11 @@ export const MenuIndex: React.FC = () => {
       }
 
       setIsFormModalOpen(false);
+      publish(MFE_EVENTS.PERMISSIONS_UPDATED);
+      publish(MFE_EVENTS.DATA_UPDATED, {
+        entity: 'menu',
+        action: editingMenu ? 'update' : 'create',
+      });
       await loadData();
     } catch (err: any) {
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
@@ -259,6 +275,11 @@ export const MenuIndex: React.FC = () => {
         title: 'Status Diperbarui',
         message: `Menu "${menu.menuName}" berhasil ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}.`,
       });
+      publish(MFE_EVENTS.PERMISSIONS_UPDATED);
+      publish(MFE_EVENTS.DATA_UPDATED, {
+        entity: 'menu',
+        action: 'status',
+      });
       await loadData();
     } catch (err: any) {
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
@@ -282,6 +303,11 @@ export const MenuIndex: React.FC = () => {
         message: `Menu "${deletingMenu.menuName}" berhasil dihapus permanen.`,
       });
       setDeletingMenu(null);
+      publish(MFE_EVENTS.PERMISSIONS_UPDATED);
+      publish(MFE_EVENTS.DATA_UPDATED, {
+        entity: 'menu',
+        action: 'delete',
+      });
       await loadData();
     } catch (err: any) {
       publish(MFE_EVENTS.NOTIFICATION_SHOW, {
@@ -298,17 +324,24 @@ export const MenuIndex: React.FC = () => {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shadow-xs">
-            <Box className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Master Menu
-            </h1>
-            <p className="text-xs text-slate-500">
-              Kelola daftar rute modul dan halaman sistem yang terdaftar di basis data
-            </p>
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600 border border-orange-200/60 shadow-xs">
+              <Box className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Master Menu
+                </h1>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 tabular-nums">
+                  {menus.length} Menu
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Kelola daftar rute modul dan halaman sistem yang terdaftar di basis data.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -318,7 +351,7 @@ export const MenuIndex: React.FC = () => {
             size="sm"
             onClick={loadData}
             disabled={isLoading}
-            className="flex items-center gap-1.5 text-xs text-slate-600"
+            className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer h-9 px-3"
           >
             <RotateCcw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Segarkan</span>
@@ -329,7 +362,7 @@ export const MenuIndex: React.FC = () => {
               variant="default"
               size="sm"
               onClick={handleOpenCreateModal}
-              className="flex items-center gap-1.5 text-xs bg-teal-600 hover:bg-teal-700 text-white"
+              className="flex items-center gap-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white cursor-pointer shadow-xs h-9 px-3.5"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Tambah Menu</span>
@@ -374,7 +407,7 @@ export const MenuIndex: React.FC = () => {
                 value={selectedGroupId}
                 onChange={(e) => setSelectedGroupId(e.target.value)}
                 aria-label="Filter berdasarkan grup menu"
-                className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
               >
                 <option value="all">Semua Grup ({groups.length})</option>
                 {groups.map((g) => (
@@ -391,7 +424,7 @@ export const MenuIndex: React.FC = () => {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 aria-label="Filter status menu"
-                className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
               >
                 <option value="all">Semua Status</option>
                 <option value="active">Aktif Saja</option>
@@ -447,8 +480,8 @@ export const MenuIndex: React.FC = () => {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center text-xs font-mono shrink-0">
-                          {m.icon ? m.icon.substring(0, 2).toUpperCase() : 'MN'}
+                        <div className="h-7 w-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                          {React.createElement(resolveLucideIcon(m.icon, Box), { className: 'w-4 h-4' })}
                         </div>
                         <div>
                           <div className="font-semibold text-slate-900">{m.menuName}</div>
@@ -551,12 +584,12 @@ export const MenuIndex: React.FC = () => {
       </Card>
 
       {/* Modal Tambah / Ubah */}
-      {isFormModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+      {isFormModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-lg overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
+                <div className="h-8 w-8 rounded-lg bg-orange-50 text-orange-600 border border-orange-200/60 flex items-center justify-center">
                   <FilePlus className="h-4 w-4" />
                 </div>
                 <div>
@@ -695,19 +728,25 @@ export const MenuIndex: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Icon Material / Identifier
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Icon Lucide
+                  </label>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                    <span>Preview:</span>
+                    {React.createElement(resolveLucideIcon(formData.icon, Box), { className: 'w-3.5 h-3.5 text-teal-600' })}
+                  </div>
+                </div>
                 <Input
                   type="text"
-                  placeholder="contoh: description, payments, assignment"
+                  placeholder="contoh: Package, FileText, ShoppingBag, Users"
                   value={formData.icon}
                   onChange={(e) => setFormData((prev) => ({ ...prev, icon: e.target.value }))}
                   disabled={isSubmitting}
                   className="text-xs font-mono"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Nama icon Material Icons atau Lucide icon.
+                  Nama icon resmi Lucide (PascalCase atau kebab-case). Fallback: Box.
                 </p>
               </div>
 
@@ -727,7 +766,7 @@ export const MenuIndex: React.FC = () => {
                   variant="default"
                   size="sm"
                   disabled={isSubmitting}
-                  className="text-xs bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1.5"
+                  className="text-xs bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   {isSubmitting && <LoadingSpinner size="sm" />}
                   <span>{editingMenu ? 'Simpan Perubahan' : 'Buat Menu'}</span>
@@ -735,12 +774,13 @@ export const MenuIndex: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Konfirmasi Hapus */}
-      {deletingMenu && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+      {deletingMenu && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md overflow-hidden p-6 space-y-4">
             <div className="flex items-center gap-3 text-rose-600">
               <div className="p-2 rounded-xl bg-rose-100">
@@ -785,7 +825,8 @@ export const MenuIndex: React.FC = () => {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

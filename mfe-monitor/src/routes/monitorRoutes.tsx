@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '@template/shared';
 import PermintaanDiskonIndex from '../pages/PermintaanDiskon/Index';
 import PersetujuanDiskonIndex from '../pages/PersetujuanDiskon/Index';
@@ -13,27 +13,23 @@ export const MonitorRoutes: React.FC = () => {
 
   return (
     <Routes>
-      {/* Index redirection based on access */}
-      <Route
-        index
-        element={
-          canReadPermintaan ? (
-            <Navigate to="permintaan-diskon" replace />
-          ) : canReadPersetujuan ? (
-            <Navigate to="persetujuan-diskon" replace />
-          ) : (
-            <NotFound />
-          )
-        }
-      />
-
-      {/* Sub-domain: Permintaan Diskon */}
-      {canReadPermintaan && (
-        <Route path="permintaan-diskon" element={<PermintaanDiskonIndex />} />
+      {/* Index: render halaman pertama yang bisa diakses */}
+      {canReadPermintaan ? (
+        <>
+          <Route index element={<PermintaanDiskonIndex />} />
+          <Route path="permintaan-diskon" element={<PermintaanDiskonIndex />} />
+        </>
+      ) : canReadPersetujuan ? (
+        <>
+          <Route index element={<PersetujuanDiskonIndex />} />
+          <Route path="persetujuan-diskon" element={<PersetujuanDiskonIndex />} />
+        </>
+      ) : (
+        <Route index element={<NotFound />} />
       )}
 
-      {/* Sub-domain: Persetujuan Diskon */}
-      {canReadPersetujuan && (
+      {/* Sub-domain: Permintaan Diskon (jika user hanya punya akses persetujuan di index) */}
+      {canReadPermintaan && canReadPersetujuan && (
         <Route path="persetujuan-diskon" element={<PersetujuanDiskonIndex />} />
       )}
 

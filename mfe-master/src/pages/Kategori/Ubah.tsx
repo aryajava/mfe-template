@@ -92,6 +92,7 @@ export const KategoriUbah: React.FC = () => {
         title: 'Kategori Berhasil Diperbarui',
         message: `Kategori "${updated.name}" berhasil disimpan.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'category', action: 'update', id: updated.id });
 
       navigate('/master/kategori');
     } catch (err: any) {
@@ -129,23 +130,8 @@ export const KategoriUbah: React.FC = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Header & Breadcrumbs */}
+      {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-1">
-          <Link to="/dashboard" className="hover:text-orange-600 transition-colors">
-            Beranda
-          </Link>
-          <span>/</span>
-          <Link to="/master" className="hover:text-orange-600 transition-colors">
-            Master
-          </Link>
-          <span>/</span>
-          <Link to="/master/kategori" className="hover:text-orange-600 transition-colors">
-            Kategori
-          </Link>
-          <span>/</span>
-          <span className="text-orange-600 font-semibold">Ubah</span>
-        </div>
 
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-3">

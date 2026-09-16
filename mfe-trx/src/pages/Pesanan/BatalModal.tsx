@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, X } from 'lucide-react';
 import { Button, Input, LoadingSpinner } from '@template/shared';
 import { OrderSummary } from '../../types/pesanan';
@@ -22,6 +23,7 @@ export const BatalModal: React.FC<BatalModalProps> = ({
   const [validationError, setValidationError] = useState<string | null>(null);
 
   if (!isOpen || !order) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +36,8 @@ export const BatalModal: React.FC<BatalModalProps> = ({
     setReason('');
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
         className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -118,6 +120,7 @@ export const BatalModal: React.FC<BatalModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

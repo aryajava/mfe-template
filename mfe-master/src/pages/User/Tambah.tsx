@@ -8,6 +8,11 @@ import {
   Shield,
   KeyRound,
   User,
+  Crown,
+  ShieldCheck,
+  Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   Button,
@@ -21,8 +26,39 @@ import {
   useLoading,
   useEventBus,
   MFE_EVENTS,
+  cn,
 } from '@template/shared';
 import { userApi } from '../../services/userApi';
+
+const ROLE_OPTIONS = [
+  {
+    id: 'ADMIN',
+    title: 'Admin Toko',
+    description: 'Akses operasional harian, katalog produk, kategori, dan pesanan toko.',
+    icon: Shield,
+    colorClass: 'text-blue-600',
+    bgClass: 'bg-blue-50',
+    borderClass: 'border-blue-200',
+  },
+  {
+    id: 'OWNER',
+    title: 'Pemilik Toko',
+    description: 'Manajemen lengkap toko, evaluasi diskon, laporan finansial, dan akun staf.',
+    icon: ShieldCheck,
+    colorClass: 'text-amber-600',
+    bgClass: 'bg-amber-50',
+    borderClass: 'border-amber-200',
+  },
+  {
+    id: 'SA',
+    title: 'Super Admin',
+    description: 'Wewenang tertinggi sistem, akses audit penuh, konfigurasi aplikasi & sistem.',
+    icon: Crown,
+    colorClass: 'text-purple-600',
+    bgClass: 'bg-purple-50',
+    borderClass: 'border-purple-200',
+  },
+];
 
 export const UserTambah: React.FC = () => {
   const navigate = useNavigate();
@@ -32,6 +68,7 @@ export const UserTambah: React.FC = () => {
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('ADMIN');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -88,6 +125,7 @@ export const UserTambah: React.FC = () => {
         type: 'success',
         message: `Pengguna "${created.username}" berhasil didaftarkan.`,
       });
+      publish(MFE_EVENTS.DATA_UPDATED, { entity: 'user', action: 'create', id: created.id });
 
       navigate('/master/user');
     } catch (err: any) {
@@ -100,30 +138,15 @@ export const UserTambah: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Header & Breadcrumbs */}
+    <div className="p-6 max-w-3xl mx-auto space-y-6">
+      {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-1">
-          <Link to="/dashboard" className="hover:text-orange-600 transition-colors">
-            Beranda
-          </Link>
-          <span>/</span>
-          <Link to="/master" className="hover:text-orange-600 transition-colors">
-            Master
-          </Link>
-          <span>/</span>
-          <Link to="/master/user" className="hover:text-orange-600 transition-colors">
-            User
-          </Link>
-          <span>/</span>
-          <span className="text-orange-600 font-semibold">Tambah</span>
-        </div>
 
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/master/user')}
-              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors text-gray-600 cursor-pointer"
+              className="p-2 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors text-gray-600 cursor-pointer shadow-2xs"
               title="Kembali ke Daftar User"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -141,46 +164,48 @@ export const UserTambah: React.FC = () => {
         </div>
       </div>
 
-      {/* Form Card */}
-      <Card className="border border-gray-200 shadow-sm rounded-xl">
-        <CardHeader className="p-6 border-b border-gray-100">
-          <CardTitle className="text-base font-semibold text-gray-900">
-            Informasi Akun Pengguna
-          </CardTitle>
-          <CardDescription className="text-xs text-gray-500">
-            Isi identitas akun, hak wewenang akses, dan kata sandi awal
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          {apiError && (
-            <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3 text-red-700 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0 text-red-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-xs">Pendaftaran Gagal</p>
-                <p className="text-xs mt-0.5">{apiError}</p>
-              </div>
+      {/* Form Container */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {apiError && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 text-red-700 text-sm">
+            <AlertCircle className="w-5 h-5 shrink-0 text-red-600 mt-0.5" />
+            <div>
+              <p className="font-semibold text-xs">Pendaftaran Gagal</p>
+              <p className="text-xs mt-0.5">{apiError}</p>
             </div>
-          )}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Section 1: Identitas Pengguna */}
+        <Card className="border border-gray-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="p-5 border-b border-gray-100 bg-gray-50/40">
+            <CardTitle className="text-sm font-bold text-gray-900">
+              Identitas Pengguna
+            </CardTitle>
+            <CardDescription className="text-xs text-gray-500">
+              Kredensial username dan nama tampilan yang digunakan dalam sistem
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 space-y-4">
             {/* Username Field */}
             <div className="space-y-1.5">
               <Label htmlFor="username" className="text-xs font-semibold text-gray-700">
                 Username <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   id="username"
-                  placeholder="Contoh: kasir01, admin_gudang"
+                  placeholder="misal: kasir01, admin_gudang"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="pl-9 h-10 text-sm font-mono"
+                  className="pl-10 h-10 text-sm font-mono bg-white"
                 />
               </div>
-              <p className="text-[11px] text-gray-400">
-                Gunakan 3 hingga 50 karakter huruf kecil dan angka tanpa spasi.
-              </p>
+              <div className="flex items-center justify-between text-[11px] text-gray-400">
+                <span>3-50 karakter huruf kecil dan angka tanpa spasi</span>
+                <span className="font-mono tabular-nums">{username.length}/50</span>
+              </div>
               {errors.username && (
                 <p className="text-xs text-red-600 font-medium">{errors.username}</p>
               )}
@@ -193,89 +218,145 @@ export const UserTambah: React.FC = () => {
               </Label>
               <Input
                 id="displayName"
-                placeholder="Contoh: Budi Santoso (Kasir Shift Pagi)"
+                placeholder="misal: Budi Santoso (Kasir Shift Pagi)"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="h-10 text-sm"
+                className="h-10 text-sm bg-white"
               />
               <p className="text-[11px] text-gray-400">
-                Nama lengkap atau keterangan staf yang tampil di aplikasi toko.
+                Nama staf yang akan tampil di header, struk kasir, dan riwayat mutasi toko.
               </p>
               {errors.displayName && (
                 <p className="text-xs text-red-600 font-medium">{errors.displayName}</p>
               )}
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Peran / Role Field */}
-            <div className="space-y-1.5">
-              <Label htmlFor="role" className="text-xs font-semibold text-gray-700">
-                Peran Akses <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  id="role"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full pl-9 pr-3 h-10 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700"
-                >
-                  <option value="ADMIN">Admin Toko (Operasional Toko & Master Data)</option>
-                  <option value="OWNER">Pemilik Toko (Kelola Toko & Buat Akun Admin)</option>
-                  <option value="SA">Super Admin (Akses Penuh Seluruh Sistem)</option>
-                </select>
-              </div>
-              {errors.role && (
-                <p className="text-xs text-red-600 font-medium">{errors.role}</p>
-              )}
+        {/* Section 2: Hak Akses & Peran */}
+        <Card className="border border-gray-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="p-5 border-b border-gray-100 bg-gray-50/40">
+            <CardTitle className="text-sm font-bold text-gray-900">
+              Hak Akses & Peran <span className="text-red-500">*</span>
+            </CardTitle>
+            <CardDescription className="text-xs text-gray-500">
+              Pilih tingkat wewenang dan cakupan menu yang dapat diakses pengguna
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5">
+            <div className="grid grid-cols-1 gap-3">
+              {ROLE_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const isSelected = role === opt.id;
+
+                return (
+                  <div
+                    key={opt.id}
+                    onClick={() => setRole(opt.id)}
+                    className={cn(
+                      'p-4 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-4',
+                      isSelected
+                        ? 'border-orange-500 bg-orange-50/30 ring-1 ring-orange-500/20 shadow-xs'
+                        : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50/50'
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={cn(
+                          'p-2 rounded-lg border shrink-0 mt-0.5',
+                          opt.bgClass,
+                          opt.colorClass,
+                          opt.borderClass
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-gray-900">{opt.title}</div>
+                        <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                          {opt.description}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className={cn(
+                        'w-5 h-5 rounded-full flex items-center justify-center border shrink-0 mt-1 transition-colors',
+                        isSelected
+                          ? 'border-orange-600 bg-orange-600 text-white'
+                          : 'border-gray-300 bg-white'
+                      )}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+            {errors.role && <p className="text-xs text-red-600 font-medium mt-2">{errors.role}</p>}
+          </CardContent>
+        </Card>
 
-            {/* Kata Sandi Awal */}
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs font-semibold text-gray-700">
-                Kata Sandi Awal <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Minimal 6 karakter..."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 h-10 text-sm"
-                />
-              </div>
-              <p className="text-[11px] text-gray-400">
-                Pengguna dapat mengganti kata sandi ini setelah login.
-              </p>
-              {errors.password && (
-                <p className="text-xs text-red-600 font-medium">{errors.password}</p>
-              )}
-            </div>
-
-            {/* Tombol Simpan & Batal */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-              <Button
+        {/* Section 3: Keamanan Akun */}
+        <Card className="border border-gray-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="p-5 border-b border-gray-100 bg-gray-50/40">
+            <CardTitle className="text-sm font-bold text-gray-900">
+              Kata Sandi Awal <span className="text-red-500">*</span>
+            </CardTitle>
+            <CardDescription className="text-xs text-gray-500">
+              Kata sandi sementara yang digunakan untuk login pertama kali
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 space-y-2">
+            <div className="relative">
+              <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Minimal 6 karakter..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10 pr-10 h-10 text-sm bg-white"
+              />
+              <button
                 type="button"
-                variant="outline"
-                onClick={() => navigate('/master/user')}
-                disabled={isSubmitting}
-                className="h-10 px-4 text-xs font-medium cursor-pointer"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                title={showPassword ? 'Sembunyikan sandi' : 'Lihat sandi'}
               >
-                Batal
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="h-10 px-5 text-xs font-medium bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-2 cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                <span>{isSubmitting ? 'Menyimpan...' : 'Daftarkan User'}</span>
-              </Button>
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+            <p className="text-[11px] text-gray-400">
+              Pengguna disarankan untuk memperbarui kata sandi setelah berhasil login ke aplikasi.
+            </p>
+            {errors.password && (
+              <p className="text-xs text-red-600 font-medium">{errors.password}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Form Action Footer */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/master/user')}
+            disabled={isSubmitting}
+            className="h-10 px-5 text-xs font-medium cursor-pointer"
+          >
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-10 px-6 text-xs font-semibold bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-2 cursor-pointer shadow-xs"
+          >
+            <Save className="w-4 h-4" />
+            <span>{isSubmitting ? 'Mendaftarkan...' : 'Daftarkan User Baru'}</span>
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };
